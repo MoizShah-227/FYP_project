@@ -70,3 +70,10 @@ CREATE TABLE Event (
 select * from Event
 DELETE FROM users WHERE u_id=1
 
+
+---4
+CREATE TABLE Annoucements(
+    A_id INT PRIMARY KEY IDENTITY(1,1), message VARCHAR(500),image VARCHAR(300),
+    type varchar(100),created_at datetime,created_by INT,FOREIGN KEY (created_by) REFERENCES Users(u_id));
+
+select * from Annoucements
