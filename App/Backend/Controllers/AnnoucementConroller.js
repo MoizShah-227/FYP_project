@@ -43,5 +43,27 @@ export const FacultyAnnoucement=async (req,res)=>{
         }
     }
 
+    try {
+        const pool = await poolPromise;
+        const result = await pool
+          .request()
+          .input("message", message)
+          .input("image", image)
+          .input("type", type)
+          .input("created_at", created_at)
+          .input("created_by", created_by)
+          .query(`
+            INSERT INTO Annoucements (message, image, type, created_at, created_by)
+            VALUES (@message, @image, @type, @created_at, @created_by)
+          `);
+    
+        res.status(200).json({
+          message: "Announcement added successfully",
+          result
+        });
+      } catch (err) {
+        res.status(500).send(err.message);
+      }
+
 
 }
