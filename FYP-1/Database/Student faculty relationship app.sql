@@ -210,5 +210,17 @@ LEFT JOIN Announcement_Reaction ar
 GROUP BY u.u_id, u.name, u.image
 ORDER BY total_reactions DESC;
 
+--FAVURITET
+CREATE TABLE hasfav (
+    F_id INT PRIMARY KEY IDENTITY(1,1),
+    user_id INT ,       
+    fav_user_id INT ,   
+    created_at DATETIME DEFAULT GETDATE(),
+    CONSTRAINT FK_hasfav_user FOREIGN KEY (user_id) REFERENCES users(u_id),
+    CONSTRAINT FK_hasfav_fav_user FOREIGN KEY (fav_user_id) REFERENCES users(u_id),
+    CONSTRAINT UQ_hasfav UNIQUE (user_id, fav_user_id)  
+);
 
+
+drop table hasfav
 
