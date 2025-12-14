@@ -60,3 +60,27 @@ export const TotalTeachers=async(req,res)=>{
     res.status(500).send(err.message)
   }
 }
+
+export const SetReaction=async(req,res)=>{
+    const{id,status} = req.body;
+    try{
+      const pool = await poolPromise
+      const result = await pool.request()
+      .input("id",id)
+      .input("status",status)
+      .query("update emojis set isEnable=@status where e_id=@id");
+      res.status(200).send(result);
+    }catch(err){
+    res.status(500).send(err.message);
+    }
+}
+
+export const AllEmojis=async(req,res)=>{
+  try{
+      const pool= await poolPromise;
+      const result  = await pool.request().query("select * from emojis");
+      res.status(200).send(result.recordsets)
+  }catch(err){
+    res.status(500).send(err.message);
+  }
+}

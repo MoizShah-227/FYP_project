@@ -73,16 +73,54 @@ DELETE FROM users WHERE u_id=1
 
 
 ---4
-CREATE TABLE Annoucements(
+CREATE TABLE Announcements(
     A_id INT PRIMARY KEY IDENTITY(1,1), message VARCHAR(500),image VARCHAR(300),
     type varchar(100),created_at datetime,created_by INT,FOREIGN KEY (created_by) REFERENCES Users(u_id));
 
-select * from Annoucements
+select * from Announcements
 
 ---5
 select * from users where user_type='teacher'
 
 ---6
-select a.A_id,u.image,u.name, a.created_at, a.message from Annoucements a join 
+select a.A_id,u.image,u.name, a.created_at, a.message from Announcements a join 
 users u on u.u_id =a.created_by where a.type='faculty'
 
+---emoji Table
+
+CREATE TABLE emojis (E_id INT PRIMARY KEY IDENTITY(1,1),emoji VARCHAR(100) unique,
+isEnable BIT DEFAULT 0);
+INSERT INTO emojis (emoji, isEnable) VALUES
+(':heart:', 1),
+(':thumbsup:', 1),
+(':fire:', 1),
+(':joy:', 1),
+(':clap:', 1),
+(':smile:', 1),
+(':cry:', 1),
+(':angry:', 0),
+(':sunglasses:', 1),
+(':thinking:', 1),
+(':rocket:', 1),
+(':star:', 1),
+(':check_mark:', 1),
+(':x:', 0);
+
+select * from emojis
+
+---announcement_reaction
+CREATE TABLE Announcement_Reaction (AR_id INT IDENTITY(1,1) PRIMARY KEY,
+user_id INT,announcement_id INT,emoji_id INT,
+reacted_at DATETIME DEFAULT GETDATE(),CONSTRAINT FK_Reaction_User FOREIGN KEY (user_id) REFERENCES Users(u_id), 
+CONSTRAINT FK_Reaction_Announcement FOREIGN KEY (announcement_id) REFERENCES Announcements(A_id),
+CONSTRAINT FK_Reaction_Emoji FOREIGN KEY (emoji_id) REFERENCES Emojis(E_id),
+CONSTRAINT UQ_User_Announcement UNIQUE (user_id, announcement_id));
+
+select * from Announcement_Reaction
+
+insert into Announcement_Reaction(user_id,announcement_id,emoji_id) values()
+EXEC sp_rename 'Annoucements', 'Announcements';
+
+--reactions 
+SELECT u.name,u.image,e.emoji FROM Users u JOIN Announcement_Reaction ar 
+ON u.u_id = ar.user_id JOIN emojis e ON e.E_id = ar.emoji_id where ar.announcement_id=2
