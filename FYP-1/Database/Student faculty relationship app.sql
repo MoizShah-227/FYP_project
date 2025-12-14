@@ -18,8 +18,8 @@ VALUES ('ADM-001','Muhammad Nadeem','Ghulam Abbas','nadeem.admin@college.pk','12
 '35202-4589123-7','0306-5891234','Male','Admin','1985-04-12','Senior Administrator','2019-03-15');
 
 INSERT INTO Users(reg_no,name,father_name,email,password,cnic,phoneNo,gender,user_type,dob,qualification,description,joining_data,department)
-VALUES ('TEH-006','Moiz Hassan','Qaiser Shah','syedmoizshah227@gmail.com','12345',
-'37405-7472058-9','03149510319','male','Teacher','2001-09-06',
+VALUES ('TEH-007','Samia Noor','Noor Abbas','samianoor333886@gmail.com','12345',
+'37405-72455-8','03176278319','female','Teacher','2004-10-12',
 'BSCS Computer Science','Expert in Software Engineering & Databases','2021-08-10','Computer Science');
 
 INSERT INTO Users(reg_no,name,father_name,email,password,cnic,phoneNo,gender,user_type,dob,section,semester,department)
@@ -81,3 +81,8 @@ select * from Annoucements
 
 ---5
 select * from users where user_type='teacher'
+
+---6
+select a.A_id,u.image,u.name, a.created_at, a.message from Annoucements a join 
+users u on u.u_id =a.created_by where a.type='faculty'
+
