@@ -84,3 +84,13 @@ export const AllEmojis=async(req,res)=>{
     res.status(500).send(err.message);
   }
 }
+
+export const MostReactions=async(req,res)=>{
+  try{
+      const pool= await poolPromise;
+      const result  = await pool.request().query("SELECT u.u_id,u.name,u.image,COUNT(ar.AR_id) AS total_reactions FROM Users u JOIN Announcements a ON a.created_by = u.u_id LEFT JOIN Announcement_Reaction ar ON ar.announcement_id = a.A_id GROUP BY u.u_id, u.name, u.image ORDER BY total_reactions DESC")
+      res.status(200).send(result.recordsets)
+  }catch(err){
+    res.status(500).send(err.message);
+  }
+}

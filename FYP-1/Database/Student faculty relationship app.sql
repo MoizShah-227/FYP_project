@@ -79,6 +79,64 @@ CREATE TABLE Announcements(
 
 select * from Announcements
 
+
+INSERT INTO Announcements (message, image, type, created_at, created_by)
+VALUES
+-- Admin (u_id = 4)
+('Semester fee submission deadline is extended till next Friday.',
+ NULL,
+ 'general',
+ GETDATE(),
+ 4),
+
+('Campus will remain closed on Friday due to scheduled maintenance.',
+ NULL,
+ 'general',
+ GETDATE(),
+ 4),
+
+-- Dr. Saeed Watto (u_id = 7)
+('Final year project proposal submissions are due by the end of this month.',
+ NULL,
+ 'faculty',
+ GETDATE(),
+ 7),
+
+('Students are advised to focus on practical implementation for better results.',
+ NULL,
+ 'faculty',
+ GETDATE(),
+ 7),
+
+-- Sir Hassan (u_id = 8)
+('Lab assignments must be demonstrated individually during lab hours.',
+ NULL,
+ 'faculty',
+ GETDATE(),
+ 8),
+
+-- Umer Farooq (u_id = 5)
+('Quiz 1 will be conducted in the next class. Topics will be shared soon.',
+ NULL,
+ 'faculty',
+ GETDATE(),
+ 5),
+
+-- Zahid Ahmed (u_id = 9)
+('Cloud computing seminar will be arranged next week. Details coming soon.',
+ NULL,
+ 'faculty',
+ GETDATE(),
+ 9),
+
+-- Samia Noor (u_id = 20)
+('Please revise database normalization before the upcoming quiz.',
+ NULL,
+ 'faculty',
+ GETDATE(),
+ 20);
+
+
 ---5
 select * from users where user_type='teacher'
 
@@ -116,11 +174,41 @@ CONSTRAINT FK_Reaction_Announcement FOREIGN KEY (announcement_id) REFERENCES Ann
 CONSTRAINT FK_Reaction_Emoji FOREIGN KEY (emoji_id) REFERENCES Emojis(E_id),
 CONSTRAINT UQ_User_Announcement UNIQUE (user_id, announcement_id));
 
-select * from Announcement_Reaction
+select * from emojis
 
 insert into Announcement_Reaction(user_id,announcement_id,emoji_id) values()
+
 EXEC sp_rename 'Annoucements', 'Announcements';
 
 --reactions 
 SELECT u.name,u.image,e.emoji FROM Users u JOIN Announcement_Reaction ar 
 ON u.u_id = ar.user_id JOIN emojis e ON e.E_id = ar.emoji_id where ar.announcement_id=2
+
+
+select * from users 
+select * from Announcement_Reaction
+select * from emojis 
+select * from Announcements
+drop table Announcement_Reaction
+
+delete from Announcement_Reaction
+
+--most reactions
+
+
+
+SELECT 
+    u.u_id,
+    u.name,
+    u.image,
+    COUNT(ar.AR_id) AS total_reactions
+FROM Users u
+JOIN Announcements a 
+    ON a.created_by = u.u_id
+LEFT JOIN Announcement_Reaction ar 
+    ON ar.announcement_id = a.A_id
+GROUP BY u.u_id, u.name, u.image
+ORDER BY total_reactions DESC;
+
+
+
