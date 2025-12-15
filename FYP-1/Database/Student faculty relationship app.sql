@@ -220,8 +220,35 @@ CREATE TABLE hasfav (
     CONSTRAINT UQ_hasfav UNIQUE (user_id, fav_user_id)  
 );
 
-select * from hasfav
+select * from Announcement_reaction
+
 delete from hasfav
 drop table hasfav
 
 insert into hasfav(user_id,fav_user_id)values(6,10)
+
+--- GET
+select u.name,u.image from users u join hasfav hf on u.u_id=hf.fav_user_id where hf.user_id=6
+
+
+CREATE TABLE Messages (
+    M_id INT IDENTITY(1,1) PRIMARY KEY,
+    sender_id INT ,
+    receiver_id INT ,
+    message VARCHAR(500),
+    emoji NVARCHAR(100),
+    sent_at DATETIME DEFAULT GETDATE(),
+
+    CONSTRAINT FK_Messages_Sender
+        FOREIGN KEY (sender_id) REFERENCES Users(u_id),
+
+    CONSTRAINT FK_Messages_Receiver
+        FOREIGN KEY (receiver_id) REFERENCES Users(u_id),
+
+    CONSTRAINT CHK_Sender_Receiver
+        CHECK (sender_id <> receiver_id)
+);
+
+select * from Messages
+
+drop table Messages
