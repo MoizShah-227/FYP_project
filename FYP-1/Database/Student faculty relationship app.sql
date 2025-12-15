@@ -1,5 +1,5 @@
 create database relationApp
-use relationApp
+	
 --1
 create table Users(u_id int primary key identity(1,1),reg_no varchar(100) unique
 ,name varchar(100),father_name varchar(100),email varchar(100) unique,
@@ -174,7 +174,7 @@ CONSTRAINT FK_Reaction_Announcement FOREIGN KEY (announcement_id) REFERENCES Ann
 CONSTRAINT FK_Reaction_Emoji FOREIGN KEY (emoji_id) REFERENCES Emojis(E_id),
 CONSTRAINT UQ_User_Announcement UNIQUE (user_id, announcement_id));
 
-select * from emojis
+select * from Announcement_Reaction
 
 insert into Announcement_Reaction(user_id,announcement_id,emoji_id) values()
 
@@ -215,12 +215,13 @@ CREATE TABLE hasfav (
     F_id INT PRIMARY KEY IDENTITY(1,1),
     user_id INT ,       
     fav_user_id INT ,   
-    created_at DATETIME DEFAULT GETDATE(),
     CONSTRAINT FK_hasfav_user FOREIGN KEY (user_id) REFERENCES users(u_id),
     CONSTRAINT FK_hasfav_fav_user FOREIGN KEY (fav_user_id) REFERENCES users(u_id),
     CONSTRAINT UQ_hasfav UNIQUE (user_id, fav_user_id)  
 );
 
-
+select * from hasfav
+delete from hasfav
 drop table hasfav
 
+insert into hasfav(user_id,fav_user_id)values(6,10)
