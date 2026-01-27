@@ -3,6 +3,7 @@ import {AddEvents,AllEmojis,DeleteEvent,SetReaction,TotalStudents,TotalTeachers,
 
 const router = express.Router();
 
+
 // User routes
 router.post("/addevent", AddEvents);
 router.delete("/deleteevent/:id", DeleteEvent);
