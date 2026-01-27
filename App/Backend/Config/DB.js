@@ -12,6 +12,6 @@ const config = {
 };
 
 const poolPromise = new sql.ConnectionPool(config)
-console.log(poolPromise.connect());
+console.log("connected",poolPromise.connect());
 
 export {sql, poolPromise};
