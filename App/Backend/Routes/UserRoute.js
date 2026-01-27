@@ -5,7 +5,7 @@ const router = express.Router();
 
 // User routes
 router.post("/login", login);
-router.post("/change-password", changePassword);
+router.put("/change-password", changePassword);
 router.post("/favourite", AddFavourite);
 router.get("/favourite/:id", GetFavourite);
 router.post("/remove", RemoveFavourite);

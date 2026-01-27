@@ -4,7 +4,7 @@ const config = {
     user: "sa",
     password: "123",
     server: "DESKTOP-KAMK65Q",
-    database: "relationApp",
+    database: "relationApp2",
     options: {
         encrypt: false,
         trustServerCertificate: true

@@ -11,8 +11,8 @@ export const login = async (req, res) => {
     const pool = await poolPromise;
     const result = await pool
       .request()
-      .input("regno", regno)
-      .input("password", password)
+      .input("regno",sql.VarChar(200), regno)
+      .input("password",sql.VarChar(200), password)
       .query(
         "SELECT * FROM Users WHERE reg_no = @regno AND password = @password"
       );
@@ -54,8 +54,8 @@ export const changePassword = async (req, res) => {
     const pool = await poolPromise;
     const result = await pool
       .request()
-      .input("userId", userId)
-      .input("password", newpassword)
+      .input("userId",sql.VarChar(200), userId)
+      .input("password",sql.VarChar(200), newpassword)
       .query(
         "UPDATE Users SET password = @password WHERE u_id = @userId"
       );
@@ -71,8 +71,8 @@ export const AddFavourite=async(req,res)=>{
   try{
     const pool = await poolPromise;
     const result = await pool.request()
-    .input("userid",userid)
-    .input("favid",favid)
+    .input("userid",sql.Int,userid)
+    .input("favid",sql.Int,favid)
     .query("insert into hasfav(user_id,fav_user_id)values(@userid,@favid)")
     res.status(200).send(result)
   }catch(err){
@@ -83,10 +83,11 @@ export const AddFavourite=async(req,res)=>{
 
 export const GetFavourite=async(req,res)=>{
   const {id}= req.params;
+  
   try{
     const pool = await poolPromise;
     const result = await pool.request()
-    .input("id",id)  
+    .input("id",sql.Int,id)  
     .query("select u.name,u.image from users u join hasfav hf on u.u_id=hf.fav_user_id where hf.user_id=@id")
     res.status(200).send(result.recordsets)
   }catch(err){
@@ -102,8 +103,8 @@ export const RemoveFavourite = async (req, res) => {
   try {
     const pool = await poolPromise;
     const result = await pool.request()
-      .input("userid", userid)
-      .input("favid", favid)
+      .input("userid",sql.Int, userid)
+      .input("favid",sql.Int, favid)
       .query("DELETE FROM hasfav WHERE user_id = @userid AND fav_user_id = @favid");
       res.status(200).send(result)
   }catch(err){

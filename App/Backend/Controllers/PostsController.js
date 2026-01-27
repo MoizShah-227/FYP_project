@@ -25,9 +25,9 @@ export const ReactOnPosts=async (req,res)=>{
     try{
         const pool = await poolPromise;
         const result = await pool.request()
-        .input("u_id",user_id)
-        .input("a_id",announcement_id)
-        .input("e_id",emoji_id)
+        .input("u_id",sql.Int,user_id)
+        .input("a_id",sql.Int,announcement_id)
+        .input("e_id",sql.Int,emoji_id)
         .query("insert into Announcement_Reaction(user_id,announcement_id,emoji_id) values(@u_id,@a_id,@e_id)");
         res.status(200).send(result)
     }catch(err){
@@ -40,12 +40,11 @@ export const PostReactions=async(req,res)=>{
     try{
         const pool = await poolPromise;
     const result = await pool.request()
-    .input("id",id)
+    .input("id",sql.Int,id)
     .query("SELECT u.name,u.image,e.emoji FROM Users u JOIN Announcement_Reaction ar ON u.u_id = ar.user_id JOIN emojis e ON e.E_id = ar.emoji_id where ar.announcement_id=@id");
     res.status(200).send(result.recordsets);
     }catch(err){
     res.status(500).send(err.message);
     }
 }
-
 

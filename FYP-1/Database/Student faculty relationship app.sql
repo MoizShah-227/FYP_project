@@ -220,7 +220,8 @@ CREATE TABLE hasfav (
     CONSTRAINT UQ_hasfav UNIQUE (user_id, fav_user_id)  
 );
 
-select * from Announcement_reaction
+select * from messages
+
 
 delete from hasfav
 drop table hasfav
@@ -228,12 +229,13 @@ drop table hasfav
 insert into hasfav(user_id,fav_user_id)values(6,10)
 
 --- GET
-select u.name,u.image from users u join hasfav hf on u.u_id=hf.fav_user_id where hf.user_id=6
+select * from users u join hasfav hf on u.u_id=hf.fav_user_id where hf.user_id=6
 
 
 CREATE TABLE Messages (
     M_id INT IDENTITY(1,1) PRIMARY KEY,
     sender_id INT ,
+
     receiver_id INT ,
     message VARCHAR(500),
     emoji NVARCHAR(100),
@@ -249,6 +251,44 @@ CREATE TABLE Messages (
         CHECK (sender_id <> receiver_id)
 );
 
+select * from users
+select * from event
+select * from emojis
+select * from Announcements
+select * from Announcement_reaction
+select * from hasfav
 select * from Messages
 
-drop table Messages
+
+delete from Event where E_id=5
+
+
+--working in office
+CREATE TABLE StudentSemester (
+    SS_id INT PRIMARY KEY IDENTITY(1,1),
+    student_id INT NOT NULL,
+    semester INT NOT NULL,
+    section VARCHAR(10),
+    start_date DATE,
+    end_date DATE,
+    FOREIGN KEY (student_id) REFERENCES Users(u_id)
+);
+
+
+
+CREATE TABLE Enrollments (
+    E_id INT PRIMARY KEY IDENTITY(1,1),
+    student_semester_id INT NOT NULL,
+    course_id INT NOT NULL,
+    enrollment_date DATE DEFAULT GETDATE(),
+    FOREIGN KEY (student_semester_id) REFERENCES StudentSemester(SS_id),
+    FOREIGN KEY (course_id) REFERENCES Course(C_id)
+);
+
+CREATE TABLE Course (
+    C_id INT PRIMARY KEY IDENTITY(1,1),
+    course_code VARCHAR(20) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
+    credit_hr INT NOT NULL
+);
+

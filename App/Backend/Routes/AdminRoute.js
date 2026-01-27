@@ -9,7 +9,7 @@ router.delete("/deleteevent/:id", DeleteEvent);
 router.get("/students", TotalStudents);
 router.get("/teachers", TotalTeachers);
 router.get("/emojis", AllEmojis);
-router.post("/emojis", SetReaction);
+router.put("/emojis", SetReaction);
 router.get("/mostreactions", MostReactions);
 
 export default router;
