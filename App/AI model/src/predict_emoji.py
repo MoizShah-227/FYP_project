@@ -12,7 +12,8 @@ emotion_to_emoji = {
     "love": "❤️",
     "neutral": "😐",
     "angry": "😠",
-    "surprise": "😲"
+    "surprise": "😲",
+    "happy birthday": "🎂",
 }
 
 # Optional keyword fallback
@@ -21,7 +22,10 @@ keywords = {
     "unhappy": "😢",
     "happy": "😊",
     "love": "❤️",
-    "like": "❤️"
+    "like": "❤️",
+    "happy birthday":"🎂",
+    "congrats": "🎉",
+    "congratulations": "🎉"
 }
 
 def predict_emoji(text):
@@ -38,11 +42,6 @@ def predict_emoji(text):
 # Example usage
 if __name__ == "__main__":
     texts = [
-        "I am so happy today!",
-        "I feel very sad",
-        "I love programming",
-        "Just another normal day",
-        "hello"
-    ]
+        "happy birthday", "congratulations",]
     for t in texts:
         print(t, "→", predict_emoji(t))
