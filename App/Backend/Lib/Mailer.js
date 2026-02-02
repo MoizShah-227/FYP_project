@@ -41,5 +41,27 @@ export const sendAnnouncementEmail = async (to, message, imagePath = null) => {
       : []
   };
 
+
+
+
   await transporter.sendMail(mailOptions);
+};
+
+
+export const sendMessageEmail = async (to ,message) => {
+  let htmlTemplate = fs.readFileSync("templates/message.html", "utf-8");
+
+  htmlTemplate = htmlTemplate
+    .replace("{{MESSAGE_TEXT}}", `Your teacher sent you a message on Wishora App: "${message}"`)
+    .replace("{{YEAR}}", new Date().getFullYear());
+
+  const mailOptions = {
+    from: `"Wishora App" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: "New Message from Your Teacher",
+    html: htmlTemplate
+  };
+  
+  await transporter.sendMail(mailOptions);
+  return mailOptions;
 };

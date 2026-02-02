@@ -1,4 +1,5 @@
 import { poolPromise, sql } from "../Config/DB.js";
+import { sendAnnouncementEmail, sendMessageEmail } from "../Lib/Mailer.js";
 
 export const ShowCourses = async (req, res) => {
   try {
@@ -13,25 +14,28 @@ export const ShowCourses = async (req, res) => {
 
 export const sendMessageToCourse = async (req, res) => {
   try {
-    const { teacherId, courseId, messageText } = req.body;
+    const { teacherId, courseId, messageText,checkEmail} = req.body;
     const pool = await poolPromise;
 
     const stdArray =[]
+    const emails =[]
     
     for(var id of courseId){
       const studentsResult = await pool.request()
       .input('courseId', id)
       .query(`
-        SELECT DISTINCT ss.student_id
+        SELECT DISTINCT ss.student_id,u.email
         FROM Enrollments e
         JOIN StudentSemester ss 
-          ON e.student_semester_id = ss.SS_id
+          ON e.student_semester_id = ss.SS_id join users u on u.u_id=ss.student_id
         WHERE e.course_id = @courseId
       `);  
-         stdArray.push(...studentsResult.recordset.map(s => s.student_id));
+      emails.push(...studentsResult.recordset.map(s => s.email));
+      stdArray.push(...studentsResult.recordset.map(s => s.student_id));
     }
 
     const uniqueArray = [...new Set(stdArray)];
+    const uniqueEmails = [...new Set(emails)];
 
     for (const id of uniqueArray) {
      const result = await pool.request()
@@ -43,7 +47,6 @@ export const sendMessageToCourse = async (req, res) => {
         OUTPUT INSERTED.M_id
         VALUES (@senderId, @receiverId, @message)
       `);
-        console.log();
         
         const messageId=result.recordset[0].M_id
         ///this will save the notification
@@ -58,7 +61,13 @@ export const sendMessageToCourse = async (req, res) => {
           `);
 }
 
-    res.status(201).json({
+  ///this will work if checkEmail is true
+  if(checkEmail){
+      for(var email of uniqueEmails){
+        await sendMessageEmail(email, messageText);
+      }
+  }
+  res.status(201).json({
       message: "Message sent to all enrolled students",
       totalStudents: uniqueArray
     });
