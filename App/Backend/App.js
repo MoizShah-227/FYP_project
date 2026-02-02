@@ -6,7 +6,7 @@ import AdminRoute from "./Routes/AdminRoute.js"
 import AnnoucementRoute from "./Routes/AnnoucementRoute.js"
 import PostsRoute from "./Routes/PostsRoute.js"
 import MessageRoute from "./Routes/MessagesRoute.js"
-import EmojiRecommendation from "./Routes/EmojiRecommendation.js"
+import Education from "./Routes/EducationRoute.js"
 
 const app = express();
 
@@ -18,7 +18,7 @@ app.use('/admin',AdminRoute)
 app.use('/admin',AnnoucementRoute)
 app.use('/posts',PostsRoute)
 app.use('/message',MessageRoute)
-app.use('/emoji',EmojiRecommendation)
+app.use('/education',Education)
 
 app.listen(5004, () => {
   console.log("Server is running on port 5004");

@@ -11,8 +11,8 @@ export const PublicPosts=async (req,res)=>{
 }
 
 export const FacultyPosts=async (req,res)=>{
+    const pool = await poolPromise;
     try{
-        const pool = await poolPromise;
         const result  = await pool.request().query("select a.A_id,u.image,u.name, a.created_at, a.message from Announcements a join users u on u.u_id =a.created_by where a.type='faculty'");
         res.status(200).send(result.recordsets)
     }catch(err){
