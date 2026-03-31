@@ -37,6 +37,29 @@ export const DeleteEvent=async(req,res)=>{
   }
 }
 
+
+
+export const GetAllEvents = async (req, res) => {
+  try {
+    const pool = await poolPromise;
+
+    const result = await pool
+      .request()
+      .query(`
+        SELECT E_id, event_name, description, image, event_date, created_time, created_by
+        FROM Event
+        ORDER BY event_date DESC
+      `);
+
+    res.status(200).json(result.recordset);
+  } catch (err) {
+    console.log(err);
+    res.status(500).send(err.message);
+  }
+};
+
+
+
 export const TotalStudents=async(req,res)=>{
   try{
       const pool = await poolPromise;
@@ -74,6 +97,7 @@ export const SetReaction=async(req,res)=>{
 }
 
 export const AllEmojis=async(req,res)=>{
+  // console.log("hit")
   try{
       const pool= await poolPromise;
       const result  = await pool.request().query("select * from emojis");
@@ -87,7 +111,7 @@ export const MostReactions=async(req,res)=>{
   try{
       const pool= await poolPromise;
       const result  = await pool.request().query("SELECT u.u_id,u.name,u.image,COUNT(ar.AR_id) AS total_reactions FROM Users u JOIN Announcements a ON a.created_by = u.u_id LEFT JOIN Announcement_Reaction ar ON ar.announcement_id = a.A_id GROUP BY u.u_id, u.name, u.image ORDER BY total_reactions DESC")
-      res.status(200).send(result.recordsets)
+      res.status(200).json(result.recordset)
   }catch(err){
     res.status(500).send(err.message);
   }

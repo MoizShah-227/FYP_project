@@ -3,7 +3,7 @@ import sql from 'mssql'
 const config = {
     user: "sa",
     password: "123",
-    server: "DESKTOP-KAMK65Q",
+    server: "HP",
     database: "relationApp2",
     options: {
         encrypt: false,

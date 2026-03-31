@@ -3,7 +3,6 @@ import {sendAnnouncementEmail} from  '../Lib/Mailer.js'
 
 export const PublicAnnoucement = async (req, res) => {
     const { message, image, type, created_at, created_by } = req.body;
-  
     try {
       const pool = await poolPromise;
       const result = await pool
@@ -12,9 +11,9 @@ export const PublicAnnoucement = async (req, res) => {
         .input("image",sql.VarChar(500), image)
         .input("type",sql.VarChar(200), type)
         .input("created_at", sql.VarChar(200),created_at)
-        .input("created_by",sql.VarChar(200), created_by)
+        .input("created_by",sql.Int, created_by)
         .query(`
-          INSERT INTO Annoucements (message, image, type, created_at, created_by)
+          INSERT INTO Announcements (message, image, type, created_at, created_by)
           VALUES (@message, @image, @type, @created_at, @created_by)
         `);
   
@@ -39,6 +38,7 @@ export const FacultyAnnoucement=async (req,res)=>{
                 await sendAnnouncementEmail(email, message, image);
             }
         }catch(err){
+          console.log(err.message)
             res.status(500).send(err.message);
         }
     }
@@ -51,9 +51,9 @@ export const FacultyAnnoucement=async (req,res)=>{
           .input("image",sql.VarChar(500), image)
           .input("type",sql.VarChar(200), type)
           .input("created_at", sql.VarChar(200),created_at)
-          .input("created_by",sql.VarChar(200), created_by)
+          .input("created_by",sql.Int, created_by)
           .query(`
-            INSERT INTO Annoucements (message, image, type, created_at, created_by)
+            INSERT INTO Announcements (message, image, type, created_at, created_by)
             VALUES (@message, @image, @type, @created_at, @created_by)
           `);
     
@@ -88,5 +88,44 @@ export const reactionOnAnnouncement = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
+export const getPublicAnnouncements = async (req, res) => {
+  console.log("called")
+  try {
+    const pool = await poolPromise;
+
+    // SQL query to fetch public announcements with user info
+    const result = await pool.request().query(`
+      SELECT 
+        a.A_id,
+        a.message,
+        a.image AS postImage,
+        a.type,
+        a.created_at,
+        u.name,
+        u.image AS avatar
+      FROM Announcements a
+      JOIN Users u ON a.created_by = u.u_id
+      WHERE a.type = 'public'
+      ORDER BY a.created_at DESC
+    `);
+
+    // Map rows to PostCard-friendly structure
+    const posts = result.recordset.map(row => ({
+      id: row.A_id,
+      name: row.name,
+      time: new Date(row.created_at).toLocaleString(),
+      avatar: row.avatar || '/assets/admin.png',
+      content: row.message
+    }));
+    res.status(200).json(posts);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(err.message);
   }
 };

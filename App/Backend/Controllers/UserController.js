@@ -6,39 +6,32 @@ dotenv.config();
 
 export const login = async (req, res) => {
   const { regno, password } = req.body;
-
   try {
     const pool = await poolPromise;
+
     const result = await pool
       .request()
-      .input("regno",sql.VarChar(200), regno)
-      .input("password",sql.VarChar(200), password)
+      .input("regno", sql.VarChar(200), regno)
+      .input("password", sql.VarChar(200), password)
       .query(
         "SELECT * FROM Users WHERE reg_no = @regno AND password = @password"
       );
-
     if (result.recordset.length === 0) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
     const user = result.recordset[0];
-
-    const token = jwt.sign(
-      {
-        id: user.u_id,
-        regno: user.reg_no,
-        name: user.name,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-
-    const { password: _, ...userInfo } = user;
-
+    // ✅ CREATE SESSION
+    req.session.user = {
+      id: user.u_id,
+      regno: user.reg_no,
+      name: user.name,
+      image: user.image,
+      type: user.type
+    };
     res.json({
       message: "Login successful",
-      token,
-      user: userInfo
+      user: req.session.user
     });
 
   } catch (err) {
@@ -111,3 +104,26 @@ export const RemoveFavourite = async (req, res) => {
     res.status(500).send(err.message);
   }
 }
+
+
+export const checkSession = (req, res) => {
+  if (req.session && req.session.user) {
+    return res.json({
+      loggedIn: true,
+      user: req.session.user
+    });
+  }
+
+  res.json({ loggedIn: false });
+};
+
+export const logout = (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ message: "Logout failed" });
+    }
+
+    res.clearCookie("connect.sid"); // session cookie
+    res.json({ message: "Logged out successfully" });
+  });
+};

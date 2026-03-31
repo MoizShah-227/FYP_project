@@ -1,5 +1,5 @@
 import express from 'express'
-import { AddFavourite, changePassword, GetFavourite, login, RemoveFavourite} from '../Controllers/UserController.js';
+import { AddFavourite, changePassword, checkSession, GetFavourite, login, logout, RemoveFavourite} from '../Controllers/UserController.js';
 
 const router = express.Router();
 
@@ -9,5 +9,6 @@ router.put("/change-password", changePassword);
 router.post("/favourite", AddFavourite);
 router.get("/favourite/:id", GetFavourite);
 router.post("/remove", RemoveFavourite);
-
+router.get("/check-session", checkSession);
+router.post("/logout", logout);
 export default router;
