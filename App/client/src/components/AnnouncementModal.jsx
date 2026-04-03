@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
-import { X, Globe, User } from 'lucide-react';
+import { X, Globe, User,Lock } from 'lucide-react';
 import PublicAnnouncement from './PublicAnnouncement';
 import FacultyAnnouncement from './FacultyAnnouncement'; // Import the new modal
+import CreatePostModal from './CreatePostModal';
 
 const AnnouncementModal = ({ isOpen, onClose }) => {
   const [activeView, setActiveView] = useState('selection'); // 'selection', 'public', or 'faculty'
+  const [checkUser, setCheckUser] = useState(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    return user?.type === "Teacher";
+  });
 
   if (!isOpen) return null;
 
@@ -20,6 +25,9 @@ const AnnouncementModal = ({ isOpen, onClose }) => {
   
   if (activeView === 'faculty') {
     return <FacultyAnnouncement isOpen={isOpen} onClose={handleCloseAll} onBack={() => setActiveView('selection')} />;
+  }
+  if (activeView === 'private') {
+    return <CreatePostModal isOpen={isOpen} onClose={handleCloseAll} onBack={() => setActiveView('selection')} />;
   }
 
   return (
@@ -48,20 +56,37 @@ const AnnouncementModal = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        <div 
+        
+        
+        {checkUser ? (<div 
           className="p-3 rounded-3 d-flex align-items-center border-0 shadow-sm" 
           style={{ backgroundColor: '#f8f9fa', cursor: 'pointer' }}
-          onClick={() => setActiveView('faculty')}
+          onClick={() => setActiveView('private')}///this is imp
         >
           <div className="bg-white rounded-circle p-2 me-3 shadow-sm">
-            <User size={24} color="#f39c12" />
+            <Lock size={24} color="#f39c12" />
           </div>
           <div>
-            <h6 className="m-0 fw-bold" style={{ color: '#07333d' }}>Faculty Announcement</h6>
-            <small className="text-muted">Visible to teachers only</small>
+            <h6 className="m-0 fw-bold" style={{ color: '#07333d' }}>Private</h6>
+            <small className="text-muted">Select specific users</small>
           </div>
         </div>
+      ):(<div 
+      className="p-3 rounded-3 d-flex align-items-center border-0 shadow-sm" 
+      style={{ backgroundColor: '#f8f9fa', cursor: 'pointer' }}
+      onClick={() => setActiveView('faculty')}///this is imp
+    >
+      <div className="bg-white rounded-circle p-2 me-3 shadow-sm">
+        <User size={24} color="#f39c12" />
       </div>
+      <div>
+        <h6 className="m-0 fw-bold" style={{ color: '#07333d' }}>Faculty Announcement</h6>
+        <small className="text-muted">Visible to teachers only</small>
+      </div>
+    </div>
+      )
+      }
+      </div>  
     </div>
   );
 };

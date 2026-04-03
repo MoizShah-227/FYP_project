@@ -1,10 +1,16 @@
-import React from 'react';
+import React, {  useState } from 'react';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
-import { Home, Bell, Grid, UserCircle } from 'lucide-react';
+import { Home, Bell, Grid, UserCircle, Plus } from 'lucide-react';
+import AnnouncementModal from './AnnouncementModal';
 
 function Navbar() {
   const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [checkUser, setCheckUser] = useState(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    return user?.type === "Teacher";
+  });
   return (
     <nav 
       className="d-flex align-items-center justify-content-between px-4 py-3 bg-white sticky-top"
@@ -14,6 +20,12 @@ function Navbar() {
         zIndex: 1000
       }}
     >
+    {/* //// Announcement Modal //// */}
+    <AnnouncementModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
+
       <div className="d-flex align-items-center" onClick={() => navigate('/feed')} style={{cursor: 'pointer'}}>
         <div style={{ width: '4px', height: '30px', backgroundColor: '#007bff', marginRight: '15px' }}></div>
         <h2 className="m-0 fw-bold" style={{ color: '#07333d', letterSpacing: '-0.5px', fontSize: '1.8rem' }}>
@@ -25,6 +37,12 @@ function Navbar() {
         <button onClick={() => navigate('/feed')} className="btn p-1 border-0 bg-transparent nav-icon-hover">
           <Home size={28} strokeWidth={1.5} color="#333" />
         </button>
+        
+        {checkUser&&(
+          <button onClick={() => setIsModalOpen(true)} className="btn p-1 border-0 bg-transparent nav-icon-hover">  
+          <Plus size={28} strokeWidth={1.5} color="#333" />
+          </button>
+        )}
         
         <button onClick={() => navigate('/notifications')} className="btn p-1 border-0 bg-transparent nav-icon-hover">
           <Bell size={28} strokeWidth={1.5} color="#333" />
