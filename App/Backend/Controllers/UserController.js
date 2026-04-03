@@ -81,7 +81,7 @@ export const GetFavourite=async(req,res)=>{
     const pool = await poolPromise;
     const result = await pool.request()
     .input("id",sql.Int,id)  
-    .query("select u.name,u.image from users u join hasfav hf on u.u_id=hf.fav_user_id where hf.user_id=@id")
+    .query("select u.name,u.image,u.u_id from users u join hasfav hf on u.u_id=hf.fav_user_id where hf.user_id=@id")
     res.status(200).send(result.recordsets)
   }catch(err){
     res.status(500).send(err.meesage)

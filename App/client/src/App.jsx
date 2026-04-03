@@ -8,6 +8,7 @@ import AddEvent from "./components/AddEvents";
 import Analytics from "./components/Analytics";
 import Profile from "./components/Profile";
 import ReactionSettings from "./components/ReactionSetting";
+import FavouriteStudents from "./components/FavouriteStudents";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
       <Route path="/analytics" element={<Analytics />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/reaction-setting" element={<ReactionSettings />} />
+      <Route path="/favourite-students" element={<FavouriteStudents />} />
 
       <Route path="*" element={
         <div style={{

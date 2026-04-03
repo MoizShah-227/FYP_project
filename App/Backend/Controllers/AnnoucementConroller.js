@@ -94,7 +94,6 @@ export const reactionOnAnnouncement = async (req, res) => {
 
 
 export const getPublicAnnouncements = async (req, res) => {
-  console.log("called")
   try {
     const pool = await poolPromise;
 
