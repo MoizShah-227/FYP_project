@@ -88,6 +88,17 @@ export const GetFavourite=async(req,res)=>{
   }
 }
 
+export const GetStudents=async(req,res)=>{  
+  try{
+    const pool = await poolPromise;
+    const result = await pool.request()  
+    .query("select * from users where user_type='student'")
+    res.status(200).send(result.recordsets)
+  }catch(err){
+    res.status(500).send(err.meesage)
+  }
+}
+
 
 
 export const RemoveFavourite = async (req, res) => {

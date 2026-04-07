@@ -11,7 +11,9 @@ function Navbar() {
     const user = JSON.parse(localStorage.getItem("user"));
     return user?.type === "Teacher";
   });
-  return (
+  const user = JSON.parse(localStorage.getItem("user"));
+  console.log(user.type=="Admin");
+return (
     <nav 
       className="d-flex align-items-center justify-content-between px-4 py-3 bg-white sticky-top"
       style={{
@@ -48,9 +50,9 @@ function Navbar() {
           <Bell size={28} strokeWidth={1.5} color="#333" />
         </button>
         
-        <button onClick={() => navigate('/dashboard')} className="btn p-1 border-0 bg-transparent nav-icon-hover">
+        {user.type=="Admin"?(<button onClick={() => navigate('/dashboard')} className="btn p-1 border-0 bg-transparent nav-icon-hover">
           <Grid size={28} strokeWidth={1.5} color="#333" />
-        </button>
+        </button>):null}
         
         <button onClick={() => navigate('/profile')} className="btn p-1 border-0 bg-transparent nav-icon-hover">
           <UserCircle size={32} strokeWidth={1.2} color="#000" />

@@ -20,7 +20,6 @@ const FavouriteStudents = () => {
   const fetchFavouriteStudents = async () => {
     try {
       const res = await api.get(`/user/favourite/${user.id}`);
-      console.log("favourite students", res.data[0]);
       setStudents(res.data[0]);
     } catch (err) {
       console.error(err);

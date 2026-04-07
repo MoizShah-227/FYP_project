@@ -12,4 +12,4 @@ const Checkbox = ({ checked }) => (
   </div>
 );
 
-export default Checkbox;
+export default Checkbox;  

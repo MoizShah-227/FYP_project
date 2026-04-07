@@ -14,6 +14,7 @@ function Profile() {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       setUser(JSON.parse(storedUser));
+      // console.log("yes",user.type=="Teacher");
     }
   }, []);
 
@@ -29,16 +30,12 @@ function Profile() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [sidebarOpen]);
 
-
   const handleLogout = async () => {
     try {
       await api.post("/user/logout", {}, { withCredentials: true });
-  
       localStorage.removeItem("user");
       sessionStorage.clear();
-  
       navigate("/login");
-  
     } catch (error) {
       console.error("Logout failed:", error);
     }
@@ -113,11 +110,7 @@ function Profile() {
 
         <hr style={{ borderColor: 'rgba(255,255,255,0.15)', margin: '0 0 1.5rem' }} />
 
-        {/* Nav Items — add more here as needed */}
-        <div style={{ flex: 1 }}>
-          {/* Example placeholder menu item */}
-          {/* <button style={navItemStyle}>Home</button> */}
-        </div>
+        <div style={{ flex: 1 }} />
 
         {/* Logout at bottom */}
         <button
@@ -166,7 +159,7 @@ function Profile() {
             style={{
               backgroundColor: '#073d47',
               borderRadius: '25px',
-              minHeight: '200px'
+              minHeight: '200px',
             }}
           >
             <div
@@ -193,6 +186,83 @@ function Profile() {
             </div>
           </div>
         </div>
+
+        {/* Teacher-only Menu Buttons */}
+        {user.type === "Teacher" && (
+          <div className="mt-4 d-flex flex-column gap-3">
+
+            <button
+              onClick={() => navigate('/favourite-students')}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                width: '100%',
+                background: '#fff',
+                border: '1px solid #e0e0e0',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                cursor: 'pointer',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+              }}
+            >
+              <span style={{ fontSize: '14px', fontWeight: '600', color: '#07333d' }}>
+                Favourite Students
+              </span>
+              <span style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
+                Your favourite students
+              </span>
+            </button>
+
+            <button
+              onClick={() => navigate('/students')}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                width: '100%',
+                background: '#fff',
+                border: '1px solid #e0e0e0',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                cursor: 'pointer',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+              }}
+            >
+              <span style={{ fontSize: '14px', fontWeight: '600', color: '#07333d' }}>
+                Students
+              </span>
+              <span style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
+                View students
+              </span>
+            </button>
+
+            <button
+              onClick={() => navigate('/subjects')}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                width: '100%',
+                background: '#fff',
+                border: '1px solid #e0e0e0',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                cursor: 'pointer',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+              }}
+            >
+              <span style={{ fontSize: '14px', fontWeight: '600', color: '#07333d' }}>
+                Subjects
+              </span>
+              <span style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
+                View subjects
+              </span>
+            </button>
+
+          </div>
+        )}
+
       </div>
     </div>
   );
