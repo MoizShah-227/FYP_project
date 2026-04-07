@@ -53,8 +53,8 @@ function WishoraFeed() {
       }
     };
     fetchAnnouncements();
-  }, []);
-
+  }, [posts]);
+  
   return (
     <div className="min-vh-100" style={{ backgroundColor: '#f0f2f5' }}>
       <Navbar /> 

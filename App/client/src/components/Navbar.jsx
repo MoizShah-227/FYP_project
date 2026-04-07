@@ -12,7 +12,7 @@ function Navbar() {
     return user?.type === "Teacher";
   });
   const user = JSON.parse(localStorage.getItem("user"));
-  console.log(user.type=="Admin");
+  // console.log(user.type=="Admin");
 return (
     <nav 
       className="d-flex align-items-center justify-content-between px-4 py-3 bg-white sticky-top"

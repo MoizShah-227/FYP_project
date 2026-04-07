@@ -10,8 +10,7 @@ const PublicAnnouncement = ({ isOpen, onClose, onBack }) => {
 
   // Get user id from localStorage
   const user = JSON.parse(localStorage.getItem('user')) || {};
-  const created_by = user.u_id; // or user.id depending on your storage
-
+  const created_by = user.id; // or user.id depending on your storage
   const handlePost = async () => {
     if (!message.trim()) return alert("Please enter a message");
 
