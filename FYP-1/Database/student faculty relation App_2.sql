@@ -187,3 +187,33 @@ CREATE TABLE Notifications (
 
     CONSTRAINT FK_Notifications_User FOREIGN KEY (user_id) REFERENCES Users(u_id) ON DELETE CASCADE
 );
+
+
+select * from Users
+
+
+UPDATE Users SET reg_no = '2022-ARID-1111' WHERE u_id = 1;  -- Ali Raza
+UPDATE Users SET reg_no = '2023-ARID-4214' WHERE u_id = 2;  -- Sara Khan
+UPDATE Users SET reg_no = '2023-ARID-4215' WHERE u_id = 5;  -- Bilal Ahmed
+UPDATE Users SET reg_no = '2021-ARID-4216' WHERE u_id = 7;  -- Zain Ali
+UPDATE Users SET reg_no = '2023-ARID-4217' WHERE u_id = 8;  -- Fatima Zahra
+UPDATE Users SET reg_no = '2023-ARID-4218' WHERE u_id = 10; -- Iqra Javed
+UPDATE Users SET reg_no = '2024-ARID-4219' WHERE u_id = 13; -- Danish Qureshi
+UPDATE Users SET reg_no = '2019-ARID-4220' WHERE u_id = 14; -- Kiran Shah
+UPDATE Users SET reg_no = '2023-ARID-4221' WHERE u_id = 16; -- Laiba Noor
+UPDATE Users SET reg_no = '2022-ARID-4222' WHERE u_id = 18; -- Anaya Iqbal
+UPDATE Users SET reg_no = '2023-ARID-4223' WHERE u_id = 20; -- Noor Fatima
+
+
+
+UPDATE Users SET reg_no = '2022-BIIT-2222' WHERE u_id = 3;  -- Usman Tariq
+UPDATE Users SET reg_no = '2021-BIIT-4502' WHERE u_id = 6;  -- Hina Malik
+UPDATE Users SET reg_no = '2017-BIIT-4503' WHERE u_id = 9;  -- Hamza Saeed
+UPDATE Users SET reg_no = '2020-BIIT-4504' WHERE u_id = 12; -- Mariam Asif
+UPDATE Users SET reg_no = '2016-BIIT-4505' WHERE u_id = 15; -- Taha Siddiqui
+UPDATE Users SET reg_no = '2022-BIIT-4506' WHERE u_id = 19; -- Farhan Ali
+
+UPDATE Users SET reg_no = '2022-BIIT-3333' WHERE u_id = 4;  -- Ayesha Noor
+UPDATE Users SET reg_no = '2019-BIIT-4602' WHERE u_id = 11; -- Omar Farooq
+UPDATE Users SET reg_no = '2015-BIIT-4603' WHERE u_id = 17; -- Saad Malik
+
