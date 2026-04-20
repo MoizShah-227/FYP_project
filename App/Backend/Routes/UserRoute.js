@@ -1,5 +1,5 @@
 import express from 'express'
-import { AddFavourite, changePassword, checkSession, GetFavourite, GetStudents, login, logout, RemoveFavourite} from '../Controllers/UserController.js';
+import { AddFavourite, blockUser, changePassword, checkSession, GetBlockedUsers, GetFavourite, GetStudents, login, logout, RemoveFavourite, UnblockUser} from '../Controllers/UserController.js';
 
 const router = express.Router();
 
@@ -8,6 +8,9 @@ router.post("/login", login);
 router.put("/change-password", changePassword);
 router.post("/favourite", AddFavourite);
 router.get("/favourite/:id", GetFavourite);
+router.post("/block", blockUser);
+router.get("/blocked/:id", GetBlockedUsers);
+router.post("/unblock", UnblockUser);
 router.get("/students", GetStudents);
 router.post("/remove", RemoveFavourite);
 router.get("/check-session", checkSession);

@@ -138,3 +138,46 @@ export const logout = (req, res) => {
     res.json({ message: "Logged out successfully" });
   });
 };
+
+
+export const blockUser=async(req,res)=>{
+  const{userid,blockId}=req.body;
+  try{
+    const pool = await poolPromise;
+    const result = await pool.request()
+    .input("userid",sql.Int,userid)
+    .input("blockId",sql.Int,blockId)
+    .query("insert into UserBlocked(user_id,blocked_user_id)values(@userid,@blockId)")
+    res.status(200).send(result)
+  }catch(err){
+    res.status(500).send(err.meesage)
+  }
+}
+
+export const UnblockUser = async (req, res) => {
+  const { userid, blockId } = req.body;
+
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .input("userid",sql.Int, userid)
+      .input("blockId",sql.Int, blockId)
+      .query("DELETE FROM hasfav WHERE user_id = @userid AND blocked_user_id = @blockId");
+      res.status(200).send(result)
+  }catch(err){
+    res.status(500).send(err.message);
+  }
+}
+
+export const GetBlockedUsers=async(req,res)=>{
+  const {id}= req.params;
+  try{
+    const pool = await poolPromise;
+    const result = await pool.request()
+    .input("id",sql.Int,id)  
+    .query("select u.name,u.image,u.u_id from users u join  UserBlocked hf on u.u_id=hf.blocked_user_id where hf.user_id=@id")
+    res.status(200).send(result.recordsets)
+  }catch(err){
+    res.status(500).send(err.meesage)
+  }
+}

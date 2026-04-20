@@ -8,6 +8,7 @@ function Students() {
   const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [favstudents, setfavStudents] = useState([]);
+  const [blockedstudents, setblockedstudents] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refresh, setRefresh] = useState(false);
@@ -19,6 +20,7 @@ function Students() {
   useEffect(() => {
     fetchStudents();
     fetchFavourite();
+    fetchBlocked();
   }, [refresh]);
 
   const fetchStudents = async () => {
@@ -36,8 +38,19 @@ function Students() {
   const fetchFavourite = async () => {
     try {
         const res = await api.get(`/user/favourite/${user.id}`);
-        console.log("favourite students", res.data[0]);
+        // console.log("favourite students", res.data[0]);
         setfavStudents(res.data[0].map(item => item.u_id));
+
+      }catch(error){
+      console.error('Failed to fetch favourite:', error);
+    }
+  }
+
+  const fetchBlocked = async () => {
+    try {
+        const res = await api.get(`/user/blocked/${user.id}`);
+        // console.log("Blocked students", res.data[0]);
+        setblockedstudents(res.data[0].map(item => item.u_id));
 
       }catch(error){
       console.error('Failed to fetch favourite:', error);
@@ -65,8 +78,13 @@ function Students() {
   };
 
   const toggleBlock = async (studentId) => {
+    console.log("studentId", studentId);
+    console.log("studentId", user1.id);
     try {
-      await api.post(`/user/block/${studentId}`, {}, { withCredentials: true });
+      await api.post(`/user/block/`, {
+        userid: user1.id,
+        blockId: studentId
+      }, { withCredentials: true });
       setStudents((prev) =>
         prev.map((s) =>
           s._id === studentId ? { ...s, isBlocked: !s.isBlocked } : s
@@ -197,12 +215,13 @@ function Students() {
 
                   {/* Block */}
                   <button
-                    onClick={() => toggleBlock(student._id)}
+                    onClick={() => toggleBlock(student.u_id)}
                     style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                   >
                     <Ban
+
                       size={20}
-                      color={student.isBlocked ? '#e53935' : '#aaa'}
+                      color={blockedstudents?.includes(student.u_id) ? '#e53935' : '#aaa'}
                     />
                   </button>
                 </div>
