@@ -10,6 +10,7 @@ import Profile from "./components/Profile";
 import ReactionSettings from "./components/ReactionSetting";
 import FavouriteStudents from "./components/FavouriteStudents";
 import Students from "./components/Students";
+import Subjects from "./components/Subjects";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
       <Route path="/reaction-setting" element={<ReactionSettings />} />
       <Route path="/favourite-students" element={<FavouriteStudents />} />
       <Route path="/students" element={<Students />} />
+      <Route path="/subjects" element={<Subjects />} />
 
       <Route path="*" element={
         <div style={{

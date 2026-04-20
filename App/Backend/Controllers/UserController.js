@@ -76,7 +76,6 @@ export const AddFavourite=async(req,res)=>{
 
 export const GetFavourite=async(req,res)=>{
   const {id}= req.params;
-  
   try{
     const pool = await poolPromise;
     const result = await pool.request()
@@ -176,6 +175,20 @@ export const GetBlockedUsers=async(req,res)=>{
     const result = await pool.request()
     .input("id",sql.Int,id)  
     .query("select u.name,u.image,u.u_id from users u join  UserBlocked hf on u.u_id=hf.blocked_user_id where hf.user_id=@id")
+    res.status(200).send(result.recordsets)
+  }catch(err){
+    res.status(500).send(err.meesage)
+  }
+}
+
+
+export const GetTeachCourses=async(req,res)=>{
+  const {id}= req.params;
+  try{
+    const pool = await poolPromise;
+    const result = await pool.request()
+    .input("id",sql.Int,id)  
+    .query("select course_code,name,credit_hr from Course c join TeacherCourse tc on c.C_id=tc.course_id where tc.teacher_id=@id")
     res.status(200).send(result.recordsets)
   }catch(err){
     res.status(500).send(err.meesage)
