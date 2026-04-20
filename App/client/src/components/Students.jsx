@@ -10,11 +10,16 @@ function Students() {
   const [favstudents, setfavStudents] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [refresh, setRefresh] = useState(false);
+
   const user = JSON.parse(localStorage.getItem("user")) || {};
+  
+
+
   useEffect(() => {
     fetchStudents();
     fetchFavourite();
-  }, []);
+  }, [refresh]);
 
   const fetchStudents = async () => {
     try {
@@ -27,24 +32,33 @@ function Students() {
     }
   };
 
+  
   const fetchFavourite = async () => {
     try {
         const res = await api.get(`/user/favourite/${user.id}`);
         console.log("favourite students", res.data[0]);
-        setfavStudents(res.data[0].namename);
-    }catch(error){
+        setfavStudents(res.data[0].map(item => item.u_id));
+
+      }catch(error){
       console.error('Failed to fetch favourite:', error);
     }
   }
+  
+  const user1 = JSON.parse(localStorage.getItem("user")) || {};
 
   const toggleFavourite = async (studentId) => {
+    
     try {
-      await api.post(`/user/favourite/${studentId}`, {}, { withCredentials: true });
+      await api.post(`/user/favourite`, {
+        userid: user1.id,
+        favid: studentId
+      }, { withCredentials: true });
       setStudents((prev) =>
         prev.map((s) =>
           s._id === studentId ? { ...s, isFavourite: !s.isFavourite } : s
         )
       );
+      setRefresh((prev) => !prev);
     } catch (error) {
       console.error('Failed to toggle favourite:', error);
     }
@@ -58,6 +72,7 @@ function Students() {
           s._id === studentId ? { ...s, isBlocked: !s.isBlocked } : s
         )
       );
+      setRefresh((prev) => !prev);
     } catch (error) {
       console.error('Failed to toggle block:', error);
     }
@@ -65,7 +80,7 @@ function Students() {
 
   const filteredStudents = students.filter((s) =>
     s.name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  );  
 
   if (loading) {
     return <p className="text-center mt-5">Loading...</p>;
@@ -170,13 +185,13 @@ function Students() {
                 >
                   {/* Heart / Favourite */}
                   <button
-                    onClick={() => toggleFavourite(student._id)}
+                    onClick={() => toggleFavourite(student.u_id)}
                     style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                   >
                     <Heart
                       size={20}
-                      color={student.isFavourite ? '#e53935' : '#aaa'}
-                      fill={student.isFavourite ? '#e53935' : 'none'}
+                      color={favstudents?.includes(student.u_id) ? '#e53935' : '#aaa'}
+                      fill={favstudents?.includes(student.u_id) ? '#e53935' : 'none'}
                     />
                   </button>
 
