@@ -60,37 +60,56 @@ function Students() {
   const user1 = JSON.parse(localStorage.getItem("user")) || {};
 
   const toggleFavourite = async (studentId) => {
-    
+    const checkFavourite = favstudents.includes(studentId);
     try {
-      await api.post(`/user/favourite`, {
-        userid: user1.id,
-        favid: studentId
-      }, { withCredentials: true });
-      setStudents((prev) =>
-        prev.map((s) =>
-          s._id === studentId ? { ...s, isFavourite: !s.isFavourite } : s
-        )
-      );
-      setRefresh((prev) => !prev);
+      if(checkFavourite){
+        await api.post(`/user/remove`, {
+          userid: user1.id,
+          favid: studentId
+        })
+        setfavStudents(favstudents.filter(id => id !== studentId));
+        setRefresh((prev) => !prev);
+      }else{
+          await api.post(`/user/favourite`, {
+            userid: user1.id,
+            favid: studentId
+          })
+          setfavStudents([...favstudents, studentId]);
+          setRefresh((prev) => !prev);
+      }
+      
     } catch (error) {
       console.error('Failed to toggle favourite:', error);
     }
   };
 
   const toggleBlock = async (studentId) => {
-    console.log("studentId", studentId);
-    console.log("studentId", user1.id);
+    const checkBlock = blockedstudents.includes(studentId);
+
     try {
-      await api.post(`/user/block/`, {
-        userid: user1.id,
-        blockId: studentId
-      }, { withCredentials: true });
-      setStudents((prev) =>
-        prev.map((s) =>
-          s._id === studentId ? { ...s, isBlocked: !s.isBlocked } : s
-        )
-      );
-      setRefresh((prev) => !prev);
+      if(checkBlock){
+        console.log("unblocking student", studentId);
+        console.log("user student", user1.id);
+        await api.post(`/user/unblock/`, {
+          userid: user1.id,
+          blockId: studentId
+        })
+        setblockedstudents(blockedstudents.filter(id => id !== studentId));
+        setRefresh((prev) => !prev);
+      }else{
+
+        await api.post(`/user/block/`, {
+          userid: user1.id,
+          blockId: studentId
+        }, { withCredentials: true });
+        setStudents((prev) =>
+          prev.map((s) =>
+            s._id === studentId ? { ...s, isBlocked: !s.isBlocked } : s
+      )
+    );
+    setblockedstudents([...blockedstudents, studentId]);
+    setRefresh((prev) => !prev);
+  }
     } catch (error) {
       console.error('Failed to toggle block:', error);
     }

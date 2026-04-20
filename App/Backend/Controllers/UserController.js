@@ -162,7 +162,7 @@ export const UnblockUser = async (req, res) => {
     const result = await pool.request()
       .input("userid",sql.Int, userid)
       .input("blockId",sql.Int, blockId)
-      .query("DELETE FROM hasfav WHERE user_id = @userid AND blocked_user_id = @blockId");
+      .query("DELETE FROM UserBlocked WHERE user_id = @userid AND blocked_user_id = @blockId");
       res.status(200).send(result)
   }catch(err){
     res.status(500).send(err.message);
