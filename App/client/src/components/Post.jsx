@@ -3,8 +3,17 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 import admin from "../assets/admin.png";
 import api from "../../config/axiosConfig.js";
+import EmojiConvertor from 'emoji-js';
 
 const EMOJI_OPTIONS = ["👍", "❤️", "🎉", "🤩", "🤔"];
+
+const emoji = new EmojiConvertor();
+emoji.replace_mode = 'unified'; 
+
+function renderEmoji(shortcode) {
+  return emoji.replace_colons(shortcode);
+}
+// console.log(renderEmoji(":heart:"));
 
 const PostCard = ({ id, name, time, content, avatar }) => {
   const navigate = useNavigate();
@@ -38,8 +47,26 @@ const PostCard = ({ id, name, time, content, avatar }) => {
   const topEmojis = reactions.slice(0, 3).map((r) => r.emoji);
   const firstReactor = reactions[0]?.users[0]?.name?.split(" ")[0] || "";
   const remaining = totalCount - 1;
+  const [emojis, setEmojis] = useState([]);
 
   // Close picker on outside click
+  const getEmojis=async()=>{
+    try{
+      const res = await api.get("/admin/emojis");
+  
+      setEmojis(res.data[0].filter(e=>e.isEnable))
+    }catch(err){
+      console.log(err.message)
+    }
+  }
+
+  useEffect(() => {
+    const fetchEmojis = async () => {
+      await getEmojis();
+    };
+    fetchEmojis();
+  }, []);
+  // console.log(emojis[0].E_id)
   useEffect(() => {
     const handler = (e) => {
       if (pickerRef.current && !pickerRef.current.contains(e.target)) {
@@ -48,7 +75,7 @@ const PostCard = ({ id, name, time, content, avatar }) => {
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, []);
+ }, []);
 
   const handleEmojiPick = (emoji) => {
     setMyReaction(emoji);
@@ -113,9 +140,9 @@ const PostCard = ({ id, name, time, content, avatar }) => {
             style={{ cursor: "pointer", display: "flex", gap: "4px" }}
             onClick={() => setShowPicker((v) => !v)}
           >
-            {topEmojis.map((e, i) => (
-              <span key={i} style={{ fontSize: "18px" }}>
-                {e}
+            {emojis.slice(0, 3).map((e) => (
+              <span key={e.E_id} style={{ fontSize: "18px" }}>
+                {renderEmoji(e.emoji)}
               </span>
             ))}
           </div>
@@ -156,10 +183,10 @@ const PostCard = ({ id, name, time, content, avatar }) => {
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              {EMOJI_OPTIONS.map((emoji) => (
+              {emojis.slice(0, 5).map((emoji) => (
                 <button
-                  key={emoji}
-                  onClick={() => handleEmojiPick(emoji)}
+                  key={emoji.E_id}
+                  onClick={() => handleEmojiPick(emoji.E_id)}
                   style={{
                     background: myReaction === emoji ? "#e8f0fe" : "none",
                     border: "none",
@@ -171,7 +198,7 @@ const PostCard = ({ id, name, time, content, avatar }) => {
                     transition: "transform 0.15s",
                   }}
                 >
-                  {emoji}
+                  {renderEmoji(emoji.emoji)}
                 </button>
               ))}
             </div>
