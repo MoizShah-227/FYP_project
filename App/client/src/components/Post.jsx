@@ -50,6 +50,7 @@ const PostCard = ({ id, name, time, content, avatar }) => {
   const [emojis, setEmojis] = useState([]);
 
   // Close picker on outside click
+  
   const getEmojis=async()=>{
     try{
       const res = await api.get("/admin/emojis");
