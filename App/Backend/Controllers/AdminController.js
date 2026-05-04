@@ -2,6 +2,10 @@ import { sql, poolPromise } from "../Config/DB.js";
 
 export const AddEvents = async (req, res) => {
   const { event_name, description, image, event_date, created_time, created_by } = req.body;
+  const creatorId = parseInt(String(created_by), 10);
+  if (!Number.isFinite(creatorId)) {
+    return res.status(400).json({ message: "created_by (logged-in user id) is required" });
+  }
 
   try {
     const pool = await poolPromise;
@@ -13,7 +17,7 @@ export const AddEvents = async (req, res) => {
       .input("image", sql.VarChar(500),image)
       .input("event_date", sql.VarChar(200),event_date)
       .input("created_time",sql.VarChar(200), created_time)
-      .input("created_by",sql.Int, created_by)
+      .input("created_by",sql.Int, creatorId)
       .query(`
         INSERT INTO Event (event_name, description, image, event_date, created_time, created_by)
         VALUES (@event_name, @description, @image, @event_date, @created_time, @created_by)

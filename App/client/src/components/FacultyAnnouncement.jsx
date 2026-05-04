@@ -1,11 +1,26 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { X, User, ArrowLeft, Plus } from 'lucide-react';
-import api from '../../config/axiosConfig.js'; // Import Axios config
+import api from '../../config/axiosConfig.js';
+import MentionTextarea from './MentionTextarea';
 
 const FacultyAnnouncement = ({ isOpen, onClose, onBack }) => {
   const [message, setMessage] = useState('');
   const [sendEmail, setSendEmail] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [taggedAuthorIds, setTaggedAuthorIds] = useState([]);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+
+  const user = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user')) || {};
+    } catch {
+      return {};
+    }
+  }, [isOpen]);
+
+  const isAdmin = (user?.type || '').toLowerCase() === 'admin';
+  const actingUserId = user?.id ?? user?.u_id;
 
   if (!isOpen) return null;
 
@@ -14,36 +29,51 @@ const FacultyAnnouncement = ({ isOpen, onClose, onBack }) => {
       alert("Please enter a message");
       return;
     }
-  
+    if (actingUserId == null) {
+      alert("User not found. Please login again.");
+      return;
+    }
+    if (fromDate && toDate && fromDate > toDate) {
+      alert('Visible "from" date must be on or before "to" date.');
+      return;
+    }
+
+    const uniqueIds = [...new Set(taggedAuthorIds.map(Number).filter((n) => Number.isFinite(n)))];
+    const authorIds = uniqueIds.length > 0 ? uniqueIds : [Number(actingUserId)];
+
+    const availability = {
+      from_date: fromDate || null,
+      to_date: toDate || null,
+    };
+
     setLoading(true);
-  
+
     try {
-      const user = JSON.parse(localStorage.getItem("user"));
-  
-      if (!user || !user.u_id) {
-        alert("User not found. Please login again.");
-        return;
+      for (let i = 0; i < authorIds.length; i++) {
+        const created_by = authorIds[i];
+        const payload = {
+          message,
+          image: '',
+          type: 'faculty',
+          created_at: new Date().toISOString(),
+          created_by,
+          emailChecked: sendEmail && i === 0,
+          ...availability,
+        };
+
+        await api.post('/admin/facultyannoucement', payload);
       }
-  
-      const payload = {
-        message,
-        image: "",
-        type: "faculty",
-        created_at: new Date().toISOString(),
-        created_by: user.u_id,   // ✅ Send user ID
-        emailChecked: sendEmail
-      };
-  
-      const response = await api.post("/admin/facultyannoucement", payload);
-  
-      alert("Announcement posted successfully!");
-      setMessage("");
+
+      alert(authorIds.length > 1 ? `Posted ${authorIds.length} faculty announcements.` : 'Announcement posted successfully!');
+      setMessage('');
+      setTaggedAuthorIds([]);
+      setFromDate('');
+      setToDate('');
       setSendEmail(true);
       onClose();
-  
     } catch (error) {
-      console.error("Failed to post announcement:", error.response?.data || error.message);
-      alert(error.response?.data?.message || "Failed to post announcement");
+      console.error('Failed to post announcement:', error.response?.data || error.message);
+      alert(error.response?.data?.message || 'Failed to post announcement');
     } finally {
       setLoading(false);
     }
@@ -85,18 +115,53 @@ const FacultyAnnouncement = ({ isOpen, onClose, onBack }) => {
           </div>
         </div>
 
+        {isAdmin && (
+          <p className="small text-muted mb-2">
+            Type <strong>#</strong> then a name to post on behalf of an admin or teacher. Multiple tags create multiple posts (email only on the first).
+          </p>
+        )}
+
         <label className="small fw-bold mb-2">Announcement Message:</label>
         <div className="position-relative mb-3">
-          <textarea 
-            className="form-control border shadow-sm"
-            rows="5"
-            placeholder="Write your announcement message..."
-            style={{ borderRadius: '12px', resize: 'none', fontSize: '0.9rem' }}
+          <MentionTextarea
+            enabled={isAdmin}
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
-          ></textarea>
-          <div className="position-absolute start-0 bottom-0 m-3 text-muted">
-            <Plus size={20} style={{ cursor: 'pointer' }} />
+            onChange={setMessage}
+            onTaggedAuthorsChange={setTaggedAuthorIds}
+            rows={5}
+            placeholder="Write your announcement message..."
+            className="form-control border shadow-sm"
+            style={{ borderRadius: '12px', resize: 'none', fontSize: '0.9rem' }}
+          />
+          <div className="position-absolute start-0 bottom-0 m-3 text-muted pointer-events-none">
+            <Plus size={20} />
+          </div>
+        </div>
+
+        <div className="mb-3">
+          <label className="small fw-bold mb-2 d-block">Visible between (optional)</label>
+          <p className="small text-muted mb-2">Leave empty to show anytime.</p>
+          <div className="row g-2">
+            <div className="col-6">
+              <label className="small text-muted">From</label>
+              <input
+                type="date"
+                className="form-control form-control-sm border shadow-sm"
+                style={{ borderRadius: '10px' }}
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+              />
+            </div>
+            <div className="col-6">
+              <label className="small text-muted">To</label>
+              <input
+                type="date"
+                className="form-control form-control-sm border shadow-sm"
+                style={{ borderRadius: '10px' }}
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+              />
+            </div>
           </div>
         </div>
 
@@ -122,7 +187,7 @@ const FacultyAnnouncement = ({ isOpen, onClose, onBack }) => {
           onClick={handlePost}
           disabled={loading}
         >
-          {loading ? "Posting..." : "Post Announcement"}
+          {loading ? 'Posting...' : 'Post Announcement'}
         </button>
       </div>
     </div>

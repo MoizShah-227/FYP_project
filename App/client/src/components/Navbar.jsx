@@ -1,6 +1,6 @@
 import React, {  useState } from 'react';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
-import { Home, Bell, Grid, UserCircle, Plus } from 'lucide-react';
+import { Home, Bell, Grid, UserCircle, Plus, MessageCircle } from 'lucide-react';
 import AnnouncementModal from './AnnouncementModal';
 
 function Navbar() {
@@ -48,6 +48,15 @@ return (
         
         <button onClick={() => navigate('/notifications')} className="btn p-1 border-0 bg-transparent nav-icon-hover">
           <Bell size={28} strokeWidth={1.5} color="#333" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate('/messages')}
+          className="btn p-1 border-0 bg-transparent nav-icon-hover"
+          aria-label="Messages"
+        >
+          <MessageCircle size={28} strokeWidth={1.5} color="#333" />
         </button>
         
         {user.type=="Admin"?(<button onClick={() => navigate('/dashboard')} className="btn p-1 border-0 bg-transparent nav-icon-hover">

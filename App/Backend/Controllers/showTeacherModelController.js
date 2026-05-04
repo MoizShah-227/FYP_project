@@ -1,4 +1,7 @@
 import { sql, poolPromise } from "../Config/DB.js";
+
+
+
 export const getCourses = async (req, res) => {
     const { teacherId } = req.params;
     try {

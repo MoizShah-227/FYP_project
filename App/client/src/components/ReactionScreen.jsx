@@ -1,27 +1,93 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "./Navbar";
+import api from "../../config/axiosConfig.js";
+import EmojiConvertor from "emoji-js";
+
+const emoji = new EmojiConvertor();
+emoji.replace_mode = "unified";
+
+function renderEmoji(shortcode) {
+  if (typeof shortcode !== "string" || !shortcode.trim()) return "";
+  const converted = emoji.replace_colons(shortcode);
+  if (converted === shortcode && /^:[a-z0-9_+-]+:$/i.test(shortcode.trim())) return "";
+  return converted;
+}
+
+/** DB uses `teacher` / `student` — UI labels Faculty / Student */
+const isFacultyType = (userType) =>
+  typeof userType === "string" && userType.toLowerCase() === "teacher";
+
+const isStudentType = (userType) =>
+  typeof userType === "string" && userType.toLowerCase() === "student";
 
 function ReactionsScreen() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Reactions data passed from PostCard via navigate state
-  // Shape: [{ emoji: "👍", count: 16, users: [{ name, avatar }] }, ...]
-  const reactions = location.state?.reactions || [];
-  const totalCount = reactions.reduce((sum, r) => sum + r.count, 0);
+  const postId = location.state?.postId;
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(!!postId);
+  const [audience, setAudience] = useState("all");
 
-  const [activeFilter, setActiveFilter] = useState("all");
+  useEffect(() => {
+    if (postId == null) {
+      setRows([]);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api.get(`/posts/postreactions/${postId}`);
+        const list = Array.isArray(res.data) ? res.data : [];
+        if (!cancelled) setRows(list);
+      } catch (e) {
+        console.error(e.response?.data || e.message);
+        if (!cancelled) setRows([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [postId]);
 
-  // Flatten all reactors for the list
-  const allReactors = reactions.flatMap((r) =>
-    (r.users || []).map((u) => ({ ...u, emoji: r.emoji }))
-  );
+  const { facultyCount, studentCount, filteredRows } = useMemo(() => {
+    const faculty = rows.filter((r) => isFacultyType(r.user_type)).length;
+    const student = rows.filter((r) => isStudentType(r.user_type)).length;
+    let list = rows;
+    if (audience === "faculty") {
+      list = rows.filter((r) => isFacultyType(r.user_type));
+    } else if (audience === "student") {
+      list = rows.filter((r) => isStudentType(r.user_type));
+    }
+    return { facultyCount: faculty, studentCount: student, filteredRows: list };
+  }, [rows, audience]);
 
-  const filteredReactors =
-    activeFilter === "all"
-      ? allReactors
-      : allReactors.filter((r) => r.emoji === activeFilter);
+  const totalCount = rows.length;
+
+  const tabStyle = (active) => ({
+    background: active ? "#e8f0fe" : "#f0f2f5",
+    border: "none",
+    borderRadius: "20px",
+    padding: "6px 16px",
+    fontSize: "13px",
+    fontWeight: "600",
+    color: active ? "#07333d" : "#666",
+    cursor: "pointer",
+    transition: "all 0.15s",
+  });
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100vh", backgroundColor: "#f0f2f5" }}>
+        <Navbar />
+        <p style={{ textAlign: "center", padding: "24px" }}>Loading reactions…</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#f0f2f5" }}>
@@ -35,7 +101,6 @@ function ReactionsScreen() {
           minHeight: "calc(100vh - 60px)",
         }}
       >
-        {/* Header */}
         <div
           style={{
             display: "flex",
@@ -46,6 +111,7 @@ function ReactionsScreen() {
           }}
         >
           <button
+            type="button"
             onClick={() => navigate(-1)}
             style={{
               background: "none",
@@ -71,7 +137,6 @@ function ReactionsScreen() {
           </h5>
         </div>
 
-        {/* Filter Tabs */}
         <div
           style={{
             display: "flex",
@@ -82,53 +147,31 @@ function ReactionsScreen() {
             flexWrap: "wrap",
           }}
         >
-          {/* All tab */}
           <button
-            onClick={() => setActiveFilter("all")}
-            style={{
-              background: activeFilter === "all" ? "#e8f0fe" : "#f0f2f5",
-              border: "none",
-              borderRadius: "20px",
-              padding: "5px 14px",
-              fontSize: "13px",
-              fontWeight: "600",
-              color: activeFilter === "all" ? "#07333d" : "#666",
-              cursor: "pointer",
-              transition: "all 0.15s",
-            }}
+            type="button"
+            onClick={() => setAudience("all")}
+            style={tabStyle(audience === "all")}
           >
             All {totalCount}
           </button>
-
-          {/* Per-emoji tabs */}
-          {reactions.map((r) => (
-            <button
-              key={r.emoji}
-              onClick={() => setActiveFilter(r.emoji)}
-              style={{
-                background: activeFilter === r.emoji ? "#e8f0fe" : "#f0f2f5",
-                border: "none",
-                borderRadius: "20px",
-                padding: "5px 12px",
-                fontSize: "13px",
-                fontWeight: "600",
-                color: activeFilter === r.emoji ? "#07333d" : "#666",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                transition: "all 0.15s",
-              }}
-            >
-              <span style={{ fontSize: "15px" }}>{r.emoji}</span>
-              {r.count}
-            </button>
-          ))}
+          <button
+            type="button"
+            onClick={() => setAudience("faculty")}
+            style={tabStyle(audience === "faculty")}
+          >
+            Faculty {facultyCount}
+          </button>
+          <button
+            type="button"
+            onClick={() => setAudience("student")}
+            style={tabStyle(audience === "student")}
+          >
+            Student {studentCount}
+          </button>
         </div>
 
-        {/* Reactor List */}
         <div style={{ padding: "8px 0" }}>
-          {filteredReactors.length === 0 ? (
+          {!postId ? (
             <p
               style={{
                 textAlign: "center",
@@ -137,84 +180,107 @@ function ReactionsScreen() {
                 fontSize: "14px",
               }}
             >
-              No reactions yet
+              Open reactions from a post
+            </p>
+          ) : filteredRows.length === 0 ? (
+            <p
+              style={{
+                textAlign: "center",
+                color: "#aaa",
+                padding: "40px 0",
+                fontSize: "14px",
+              }}
+            >
+              No reactions in this view
             </p>
           ) : (
-            filteredReactors.map((item, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  padding: "10px 16px",
-                  borderBottom: "1px solid #f7f7f7",
-                  gap: "14px",
-                }}
-              >
-                {/* Avatar with emoji badge */}
-                <div style={{ position: "relative", flexShrink: 0 }}>
-                  {item.avatar ? (
-                    <img
-                      src={item.avatar}
-                      alt={item.name}
-                      style={{
-                        width: "48px",
-                        height: "48px",
-                        borderRadius: "50%",
-                        objectFit: "cover",
-                        border: "1px solid #eee",
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        width: "48px",
-                        height: "48px",
-                        borderRadius: "50%",
-                        background: "#d0e4f0",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontWeight: "700",
-                        fontSize: "15px",
-                        color: "#07333d",
-                      }}
-                    >
-                      {item.name
-                        ?.split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .slice(0, 2)
-                        .toUpperCase()}
-                    </div>
-                  )}
-                  {/* Emoji badge bottom-left */}
-                  <span
-                    style={{
-                      position: "absolute",
-                      bottom: "-2px",
-                      left: "-2px",
-                      fontSize: "15px",
-                      lineHeight: 1,
-                      filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.2))",
-                    }}
-                  >
-                    {item.emoji}
-                  </span>
-                </div>
-
-                {/* Name */}
-                <span
+            filteredRows.map((item, i) => {
+              const emojiChar = renderEmoji(item.emoji);
+              return (
+                <div
+                  key={`${item.u_id}-${item.E_id}-${i}`}
                   style={{
-                    fontSize: "15px",
-                    fontWeight: "600",
-                    color: "#1a1a1a",
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "10px 16px",
+                    borderBottom: "1px solid #f7f7f7",
+                    gap: "14px",
                   }}
                 >
-                  {item.name}
-                </span>
-              </div>
-            ))
+                  <div style={{ position: "relative", flexShrink: 0 }}>
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        style={{
+                          width: "48px",
+                          height: "48px",
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                          border: "1px solid #eee",
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: "48px",
+                          height: "48px",
+                          borderRadius: "50%",
+                          background: "#d0e4f0",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontWeight: "700",
+                          fontSize: "15px",
+                          color: "#07333d",
+                        }}
+                      >
+                        {item.name
+                          ?.split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .slice(0, 2)
+                          .toUpperCase()}
+                      </div>
+                    )}
+                    {emojiChar ? (
+                      <span
+                        style={{
+                          position: "absolute",
+                          bottom: "-2px",
+                          left: "-2px",
+                          fontSize: "15px",
+                          lineHeight: 1,
+                          filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.2))",
+                        }}
+                      >
+                        {emojiChar}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span
+                      style={{
+                        fontSize: "15px",
+                        fontWeight: "600",
+                        color: "#1a1a1a",
+                        display: "block",
+                      }}
+                    >
+                      {item.name}
+                    </span>
+                    <span style={{ fontSize: "12px", color: "#888" }}>
+                      {isFacultyType(item.user_type)
+                        ? "Faculty"
+                        : isStudentType(item.user_type)
+                          ? "Student"
+                          : item.user_type || ""}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
       </div>

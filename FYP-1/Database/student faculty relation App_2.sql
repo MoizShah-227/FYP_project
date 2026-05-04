@@ -206,6 +206,17 @@ UPDATE Users SET reg_no = '2023-ARID-4223' WHERE u_id = 20; -- Noor Fatima
 
 
 
+
+---NEED TO UPDATE DATABASE
+ALTER TABLE Announcements
+ADD 
+    from_date DATE NULL,
+    to_date DATE NULL,
+    is_active BIT DEFAULT 1;
+
+
+
+
 UPDATE Users SET reg_no = '2022-BIIT-2222' WHERE u_id = 3;  -- Usman Tariq
 UPDATE Users SET reg_no = '2021-BIIT-4502' WHERE u_id = 6;  -- Hina Malik
 UPDATE Users SET reg_no = '2017-BIIT-4503' WHERE u_id = 9;  -- Hamza Saeed
@@ -217,3 +228,17 @@ UPDATE Users SET reg_no = '2022-BIIT-3333' WHERE u_id = 4;  -- Ayesha Noor
 UPDATE Users SET reg_no = '2019-BIIT-4602' WHERE u_id = 11; -- Omar Farooq
 UPDATE Users SET reg_no = '2015-BIIT-4603' WHERE u_id = 17; -- Saad Malik
 
+select * from users
+
+INSERT INTO hasfav (user_id, fav_user_id)
+VALUES (1, 3);
+
+select * from hasfav
+
+UPDATE Users
+SET dob = CAST(GETDATE() AS DATE)
+WHERE u_id = 3;
+
+ALTER TABLE Messages ADD birthday_wish BIT NOT NULL CONSTRAINT DF_Messages_birthday_wish DEFAULT 0;
+
+select * from Messages

@@ -11,7 +11,9 @@ function AddEvent() {
   const [file, setFile] = useState(null);
   const [events, setEvents] = useState([]);
 
-  const user = JSON.parse(localStorage.getItem("user")) || {};
+  const raw = localStorage.getItem("user");
+  const user = raw ? JSON.parse(raw) : {};
+  const currentUserId = user?.id ?? user?.u_id;
 
   // ✅ Fetch all events on load
   useEffect(() => {
@@ -30,6 +32,9 @@ function AddEvent() {
   // ✅ Add Event
   const handleAddEvent = async () => {
     if (!eventName || !eventDate) return alert("Fill all fields");
+    if (currentUserId == null || Number.isNaN(Number(currentUserId))) {
+      return alert("Not logged in — please log in again.");
+    }
 
     try {
       let imagePath = null;
@@ -45,7 +50,7 @@ function AddEvent() {
         image: imagePath,
         event_date: eventDate,
         created_time: new Date().toISOString(),
-        created_by: user.u_id
+        created_by: Number(currentUserId)
       });
 
       alert("Event added successfully");
@@ -135,7 +140,6 @@ function AddEvent() {
                 <Trash2 size={20} />
               </button>
             </div>
-          {console.log(`http://localhost:5004${event.image}`)}
             {event.image && (
               <img 
                 src={`http://localhost:5004${event.image}`}

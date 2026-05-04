@@ -2,6 +2,27 @@ import React, { useState } from 'react';
 import { Home, Bell, Grid, UserCircle, ArrowLeft } from 'lucide-react';
 import admin from '../assets/admin.png';
 
+const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+const withRandomReactions = (post) => {
+  const baseUsers = post.reactions.userList.length;
+  const likes = randomInt(6, 40);
+  const loves = randomInt(3, 25);
+  const totalCount = likes + loves;
+  const extraCount = Math.max(totalCount - baseUsers, 0);
+
+  return {
+    ...post,
+    reactions: {
+      ...post.reactions,
+      totalCount,
+      likeCount: likes,
+      loveCount: loves,
+      extraCount
+    }
+  };
+};
+
 // 1. New Detail Component for the Reaction Screen
 const ReactionsDetail = ({ reactions, onBack }) => (
   <div className="min-vh-100 bg-white">
@@ -108,7 +129,7 @@ function WishoraFeed() {
         ]
       }
     }
-  ];
+  ].map(withRandomReactions);
 
   // If viewingReactions has data, show the detail screen instead of the feed
   if (viewingReactions) {

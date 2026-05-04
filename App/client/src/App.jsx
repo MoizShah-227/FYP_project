@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Welcome from "./components/Welcome";
 import Login from "./components/Login";
 import Feed from "./components/Post"; // Import your new screen
@@ -12,6 +12,11 @@ import FavouriteStudents from "./components/FavouriteStudents";
 import Students from "./components/Students";
 import Subjects from "./components/Subjects";
 import ReactionsScreen from "./components/ReactionScreen";
+import Messages from "./components/Messages";
+import MessageThread from "./components/MessageThread";
+import PeopleListScreen from "./components/PeopleListScreen";
+import CurrentTeachers from "./components/CurrentTeachers";
+import FavouriteTeachers from "./components/FavouriteTeachers";
 
 function App() {
   return (
@@ -29,6 +34,13 @@ function App() {
       <Route path="/students" element={<Students />} />
       <Route path="/subjects" element={<Subjects />} />
       <Route path="/reactions" element={<ReactionsScreen />} />
+      <Route path="/messages" element={<Messages />} />
+      <Route path="/messages/thread/:peerId" element={<MessageThread />} />
+      <Route path="/current-teachers" element={<CurrentTeachers />} />
+      <Route path="/favourite-teachers" element={<FavouriteTeachers />} />
+      <Route path="/people/current-teachers" element={<Navigate to="/current-teachers" replace />} />
+      <Route path="/people/favourite-teachers" element={<Navigate to="/favourite-teachers" replace />} />
+      <Route path="/people/:kind" element={<PeopleListScreen />} />
 
       <Route path="*" element={
         <div style={{

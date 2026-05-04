@@ -45,6 +45,23 @@ function Profile() {
     return <p className="text-center mt-5">Loading...</p>;
   }
 
+  const role = String(user?.type ?? '').trim().toLowerCase();
+  const isStudent = role === 'student';
+  const isFaculty = role === 'teacher' || role === 'admin';
+
+  const profileLinkCardStyle = {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    width: '100%',
+    background: '#fff',
+    border: '1px solid #e0e0e0',
+    borderRadius: '12px',
+    padding: '12px 16px',
+    cursor: 'pointer',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+  };
+
   return (
     <div className="min-vh-100 bg-white" style={{ overflow: 'hidden' }}>
       <Navbar />
@@ -187,26 +204,58 @@ function Profile() {
           </div>
         </div>
 
-        {/* Teacher-only Menu Buttons */}
-        {user.type === "Teacher" && (
+        {/* Student: teachers (same flow as Messages) */}
+        {isStudent && (
           <div className="mt-4 d-flex flex-column gap-3">
+            <button
+              type="button"
+              onClick={() => navigate('/current-teachers')}
+              style={profileLinkCardStyle}
+            >
+              <span style={{ fontSize: '14px', fontWeight: '600', color: '#111' }}>
+                Current Teachers
+              </span>
+              <span style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
+                View your current teachers
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/favourite-teachers')}
+              style={profileLinkCardStyle}
+            >
+              <span style={{ fontSize: '14px', fontWeight: '600', color: '#111' }}>
+                Favourite Teachers
+              </span>
+              <span style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
+                Your favourite teachers
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/* Teacher / Admin: students + subjects */}
+        {isFaculty && (
+          <div className="mt-4 d-flex flex-column gap-3">
+            <button
+              type="button"
+              onClick={() => navigate('/people/current-students')}
+              style={profileLinkCardStyle}
+            >
+              <span style={{ fontSize: '14px', fontWeight: '600', color: '#111' }}>
+                Current Students
+              </span>
+              <span style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
+                Students enrolled in your courses
+              </span>
+            </button>
 
             <button
-              onClick={() => navigate('/favourite-students')}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                width: '100%',
-                background: '#fff',
-                border: '1px solid #e0e0e0',
-                borderRadius: '12px',
-                padding: '12px 16px',
-                cursor: 'pointer',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-              }}
+              type="button"
+              onClick={() => navigate('/people/favourite-students')}
+              style={profileLinkCardStyle}
             >
-              <span style={{ fontSize: '14px', fontWeight: '600', color: '#07333d' }}>
+              <span style={{ fontSize: '14px', fontWeight: '600', color: '#111' }}>
                 Favourite Students
               </span>
               <span style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
@@ -215,51 +264,30 @@ function Profile() {
             </button>
 
             <button
+              type="button"
               onClick={() => navigate('/students')}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                width: '100%',
-                background: '#fff',
-                border: '1px solid #e0e0e0',
-                borderRadius: '12px',
-                padding: '12px 16px',
-                cursor: 'pointer',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-              }}
+              style={profileLinkCardStyle}
             >
-              <span style={{ fontSize: '14px', fontWeight: '600', color: '#07333d' }}>
-                Students
+              <span style={{ fontSize: '14px', fontWeight: '600', color: '#111' }}>
+                All students
               </span>
               <span style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
-                View students
+                View all students
               </span>
             </button>
 
             <button
+              type="button"
               onClick={() => navigate('/subjects')}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                width: '100%',
-                background: '#fff',
-                border: '1px solid #e0e0e0',
-                borderRadius: '12px',
-                padding: '12px 16px',
-                cursor: 'pointer',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-              }}
+              style={profileLinkCardStyle}
             >
-              <span style={{ fontSize: '14px', fontWeight: '600', color: '#07333d' }}>
+              <span style={{ fontSize: '14px', fontWeight: '600', color: '#111' }}>
                 Subjects
               </span>
               <span style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
                 View subjects
               </span>
             </button>
-
           </div>
         )}
 

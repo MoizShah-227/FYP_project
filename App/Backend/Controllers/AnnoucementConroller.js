@@ -1,8 +1,20 @@
 import { sql, poolPromise } from "../Config/DB.js";
 import {sendAnnouncementEmail} from  '../Lib/Mailer.js'
 
+/** Parse optional body date (YYYY-MM-DD or ISO); null if empty / invalid */
+const parseBodyDate = (v) => {
+    if (v == null || v === "") return null;
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? null : d;
+};
+
 export const PublicAnnoucement = async (req, res) => {
-    const { message, image, type, created_at, created_by } = req.body;
+    const { message, image, type, created_at, created_by, from_date, to_date } = req.body;
+    const fromD = parseBodyDate(from_date);
+    const toD = parseBodyDate(to_date);
+    if (fromD && toD && fromD > toD) {
+        return res.status(400).json({ message: "from_date must be on or before to_date" });
+    }
     try {
       const pool = await poolPromise;
       const result = await pool
@@ -12,9 +24,11 @@ export const PublicAnnoucement = async (req, res) => {
         .input("type",sql.VarChar(200), type)
         .input("created_at", sql.VarChar(200),created_at)
         .input("created_by",sql.Int, created_by)
+        .input("from_date", sql.Date, fromD)
+        .input("to_date", sql.Date, toD)
         .query(`
-          INSERT INTO Announcements (message, image, type, created_at, created_by)
-          VALUES (@message, @image, @type, @created_at, @created_by)
+          INSERT INTO Announcements (message, image, type, created_at, created_by, from_date, to_date)
+          VALUES (@message, @image, @type, @created_at, @created_by, @from_date, @to_date)
         `);
   
       res.status(200).json({
@@ -27,7 +41,12 @@ export const PublicAnnoucement = async (req, res) => {
   };
   
 export const FacultyAnnoucement=async (req,res)=>{
-    const { message, image, type, created_at, created_by,emailChecked} = req.body;
+    const { message, image, type, created_at, created_by, emailChecked, from_date, to_date } = req.body;
+    const fromD = parseBodyDate(from_date);
+    const toD = parseBodyDate(to_date);
+    if (fromD && toD && fromD > toD) {
+        return res.status(400).json({ message: "from_date must be on or before to_date" });
+    }
     let emails =[];
     if(emailChecked){
         try{
@@ -52,9 +71,11 @@ export const FacultyAnnoucement=async (req,res)=>{
           .input("type",sql.VarChar(200), type)
           .input("created_at", sql.VarChar(200),created_at)
           .input("created_by",sql.Int, created_by)
+          .input("from_date", sql.Date, fromD)
+          .input("to_date", sql.Date, toD)
           .query(`
-            INSERT INTO Announcements (message, image, type, created_at, created_by)
-            VALUES (@message, @image, @type, @created_at, @created_by)
+            INSERT INTO Announcements (message, image, type, created_at, created_by, from_date, to_date)
+            VALUES (@message, @image, @type, @created_at, @created_by, @from_date, @to_date)
           `);
     
         res.status(200).json({
@@ -110,6 +131,9 @@ export const getPublicAnnouncements = async (req, res) => {
       FROM Announcements a
       JOIN Users u ON a.created_by = u.u_id
       WHERE a.type = 'public'
+        AND (a.is_active IS NULL OR a.is_active = 1)
+        AND (a.from_date IS NULL OR CAST(GETDATE() AS DATE) >= a.from_date)
+        AND (a.to_date IS NULL OR CAST(GETDATE() AS DATE) <= a.to_date)
       ORDER BY a.created_at DESC
     `);
 

@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../config/axiosConfig';
 import EmojiConvertor from "emoji-js";
+import Navbar from "./Navbar";
 
 function ReactionSettings() {
   const navigate = useNavigate();
@@ -14,6 +15,14 @@ function ReactionSettings() {
   let emoji = new EmojiConvertor();
   emoji.replace_mode = "unified";
   emoji.allow_native = true;
+
+  const renderReactionEmoji = (value) => {
+    if (typeof value !== "string" || !value.trim()) return "";
+    const converted = emoji.replace_colons(value);
+    // Hide unresolved shortcode text like :thinking:
+    if (converted === value && /^:[a-z0-9_+-]+:$/i.test(value.trim())) return "";
+    return converted;
+  };
   // Fetch reactions from backend
   useEffect(() => {
     const fetchReactions = async () => {
@@ -61,6 +70,7 @@ function ReactionSettings() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f7f7f7' }}>
       {/* Header */}
+      <Navbar />
       <div
         style={{
           backgroundColor: '#fff',
@@ -97,50 +107,50 @@ function ReactionSettings() {
 
         {!loading && !error && (
           <div style={{ backgroundColor: '#fff', borderRadius: '12px', margin: '0 12px', overflow: 'hidden' }}>
-            {reactions.map((reaction, index) => (
-              <div
-                key={reaction._id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '14px 16px',
-                  borderBottom: index !== reactions.length - 1 ? '1px solid #f0f0f0' : 'none',
-                }}
-              >
-                {/* Emoji + Label */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '22px', lineHeight: 1 }}>{emoji.replace_colons(reaction.emoji)}</span>
-                  <span style={{ fontSize: '15px', color: '#1a1a1a', fontWeight: '400' }}>
-                    {reaction.name}
-                  </span>
-                </div>
-
-                {/* Toggle Checkbox */}
+            {reactions
+              .map((reaction) => ({ ...reaction, renderedEmoji: renderReactionEmoji(reaction.emoji) }))
+              .filter((reaction) => reaction.renderedEmoji)
+              .map((reaction, index, arr) => (
                 <div
-                  onClick={() => handleToggle(reaction.E_id, reaction.isEnable===null?false:reaction.isEnable)}
+                  key={reaction._id}
                   style={{
-                    width: '22px',
-                    height: '22px',
-                    borderRadius: '6px',
-                    backgroundColor: reaction.isEnable ? '#07333d' : '#fff',
-                    border: reaction.isEnable ? '2px solid #07333d' : '2px solid #ccc',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    flexShrink: 0,
+                    justifyContent: 'space-between',
+                    padding: '14px 16px',
+                    borderBottom: index !== arr.length - 1 ? '1px solid #f0f0f0' : 'none',
                   }}
                 >
-                  {reaction.isEnable && (
-                    <svg width="13" height="13" viewBox="0 0 12 12" fill="none">
-                      <path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
+                  {/* Emoji only */}
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <span style={{ fontSize: '22px', lineHeight: 1 }}>{reaction.renderedEmoji}</span>
+                  </div>
+
+                  {/* Toggle Checkbox */}
+                  <div
+                    onClick={() => handleToggle(reaction.E_id, reaction.isEnable===null?false:reaction.isEnable)}
+                    style={{
+                      width: '22px',
+                      height: '22px',
+                      borderRadius: '6px',
+                      backgroundColor: reaction.isEnable ? '#07333d' : '#fff',
+                      border: reaction.isEnable ? '2px solid #07333d' : '2px solid #ccc',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {reaction.isEnable && (
+                      <svg width="13" height="13" viewBox="0 0 12 12" fill="none">
+                        <path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         )}
       </div>
