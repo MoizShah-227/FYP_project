@@ -208,12 +208,6 @@ UPDATE Users SET reg_no = '2023-ARID-4223' WHERE u_id = 20; -- Noor Fatima
 
 
 ---NEED TO UPDATE DATABASE
-ALTER TABLE Announcements
-ADD 
-    from_date DATE NULL,
-    to_date DATE NULL,
-    is_active BIT DEFAULT 1;
-
 
 
 
@@ -230,6 +224,14 @@ UPDATE Users SET reg_no = '2015-BIIT-4603' WHERE u_id = 17; -- Saad Malik
 
 select * from users
 
+
+ALTER TABLE Announcements
+ADD 
+    from_date DATE NULL,
+    to_date DATE NULL,
+    is_active BIT DEFAULT 1;
+
+
 INSERT INTO hasfav (user_id, fav_user_id)
 VALUES (1, 3);
 
@@ -241,4 +243,38 @@ WHERE u_id = 3;
 
 ALTER TABLE Messages ADD birthday_wish BIT NOT NULL CONSTRAINT DF_Messages_birthday_wish DEFAULT 0;
 
+select * from Users
+select * from hasfav
+
+select * from event
 select * from Messages
+
+SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'Messages'
+  AND COLUMN_NAME IN ('birthday_wish', 'event_id');
+
+
+
+  GO
+IF COL_LENGTH('dbo.Messages', 'event_id') IS NULL
+BEGIN
+  ALTER TABLE dbo.Messages ADD event_id INT NULL;
+END
+GO
+IF NOT EXISTS (
+  SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Messages_Event'
+)
+BEGIN
+  ALTER TABLE dbo.Messages ADD CONSTRAINT FK_Messages_Event
+    FOREIGN KEY (event_id) REFERENCES dbo.[Event](E_id) ON DELETE SET NULL;
+END
+GO
+IF NOT EXISTS (
+  SELECT 1 FROM sys.indexes
+  WHERE name = 'IX_Messages_sender_event' AND object_id = OBJECT_ID('dbo.Messages')
+)
+BEGIN
+  CREATE INDEX IX_Messages_sender_event ON dbo.Messages(sender_id, event_id);
+END
+GO

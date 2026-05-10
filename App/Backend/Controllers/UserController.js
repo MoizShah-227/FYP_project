@@ -139,9 +139,27 @@ export const GetAdminsAndTeachers = async (req, res) => {
   }
 };
 
+/** Users whose id may be stored as Announcements.created_by when admin posts on their behalf */
+export const GetAnnouncementAuthorCandidates = async (req, res) => {
+  try {
+    const pool = await poolPromise;
+    const result = await pool.request().query(
+      `SELECT u_id, name, reg_no, email, image, user_type
+       FROM Users
+       WHERE LOWER(LTRIM(RTRIM(user_type))) IN ('student', 'teacher', 'admin')
+       ORDER BY user_type, name`
+    );
+    return res.status(200).json(result.recordset || []);
+  } catch (err) {
+    return res.status(500).send(err.message);
+  }
+};
+
 /**
  * Feed items for Notifications: posts by favourites (react), posts mentioning favourites (react),
- * faculty-wide / Teacher's Day style posts for faculty (reply via Messages).
+ * faculty-wide / Teacher's Day style posts for faculty (`faculty_event`),
+ * any other `public` announcement is shown to all users (`public_broadcast`).
+ * Rows are skipped for the viewer when their display name appears in the message body (post addressed to them).
  * Query params: days (optional, default 21) — how far back to include announcements.
  */
 export const GetNotificationsFeed = async (req, res) => {
@@ -204,7 +222,12 @@ export const GetNotificationsFeed = async (req, res) => {
             u.u_id AS author_id,
             u.name AS author_name,
             u.image AS author_image,
-            (SELECT COUNT(DISTINCT ar.user_id) FROM Announcement_Reaction ar WHERE ar.announcement_id = a.A_id) AS reaction_user_count,
+            (SELECT COUNT(DISTINCT ar.user_id) FROM Announcement_Reaction ar
+             WHERE ar.announcement_id = a.A_id
+               AND NOT EXISTS (
+                 SELECT 1 FROM UserBlocked ub
+                 WHERE ub.user_id = a.created_by AND ub.blocked_user_id = ar.user_id
+               )) AS reaction_user_count,
             CASE WHEN EXISTS (
               SELECT 1 FROM Announcement_Reaction ar_v
               WHERE ar_v.announcement_id = a.A_id AND ar_v.user_id = @me
@@ -230,6 +253,8 @@ export const GetNotificationsFeed = async (req, res) => {
                   )
                 )
               THEN 'faculty_event'
+              WHEN LOWER(LTRIM(RTRIM(ISNULL(CAST(a.type AS NVARCHAR(200)), '')))) = 'public'
+              THEN 'public_broadcast'
               ELSE NULL
             END AS feed_kind
           FROM Announcements a
@@ -238,6 +263,13 @@ export const GetNotificationsFeed = async (req, res) => {
             AND (a.from_date IS NULL OR CAST(GETDATE() AS DATE) >= a.from_date)
             AND (a.to_date IS NULL OR CAST(GETDATE() AS DATE) <= a.to_date)
             AND a.created_by <> @me
+            AND NOT EXISTS (
+              SELECT 1
+              FROM Users viewer_row
+              WHERE viewer_row.u_id = @me
+                AND LEN(LTRIM(RTRIM(ISNULL(viewer_row.name, '')))) >= 2
+                AND CHARINDEX(LTRIM(RTRIM(viewer_row.name)), a.message) > 0
+            )
             AND a.created_at >= DATEADD(day, -@days, GETDATE())
             AND (
               a.type = 'public'

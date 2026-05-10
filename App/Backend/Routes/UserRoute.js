@@ -5,6 +5,7 @@ import {
   changePassword,
   checkSession,
   GetAdminsAndTeachers,
+  GetAnnouncementAuthorCandidates,
   GetBlockedUsers,
   GetCurrentStudentsForTeacher,
   GetCurrentTeachersForStudent,
@@ -41,6 +42,7 @@ router.get("/blocked/:id", GetBlockedUsers);
 router.post("/unblock", UnblockUser);
 router.get("/students", GetStudents);
 router.get("/admins-and-teachers", GetAdminsAndTeachers);
+router.get("/announcement-author-candidates", GetAnnouncementAuthorCandidates);
 router.get("/get-teach-courses/:id", GetTeachCourses);
 router.post("/remove", RemoveFavourite);
 router.get("/check-session", checkSession);

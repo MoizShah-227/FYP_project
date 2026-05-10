@@ -1,20 +1,31 @@
 import React, { useState, useEffect } from 'react'; // ✅ add useEffect
-import { X, BookOpen, GraduationCap, Star, Award } from 'lucide-react';
+import { X, BookOpen, GraduationCap } from 'lucide-react';
 import CourseModal from './CourseModel';
 import SemesterModal from './SemesterModal';
 import SectionModal from './SectionModel';
+import SemesterSectionMessageModal from './SemesterSectionMessageModal';
 import { useNavigate } from 'react-router-dom';
 
 const options = [
   { id: 'course',     label: 'Course',            sub: 'Send to specific course',       Icon: BookOpen,      bg: '#eef3ff', color: '#4361ee' },
   { id: 'semester',   label: 'Semester',           sub: 'Send by department & semester', Icon: GraduationCap, bg: '#f0f7ee', color: '#2d8a4e' },
-  { id: 'favourites', label: 'Favourite Students', sub: 'Your favourite students',       Icon: Star,          bg: '#fffbea', color: '#e6a817' },
-  { id: 'alumni',     label: 'Alumni',             sub: 'Past students',                 Icon: Award,         bg: '#fef0f0', color: '#e05c5c' },
+  // { id: 'favourites', label: 'Favourite Students', sub: 'Your favourite students',       Icon: Star,          bg: '#fffbea', color: '#e6a817' },
+  // { id: 'alumni',     label: 'Alumni',             sub: 'Past students',                 Icon: Award,         bg: '#fef0f0', color: '#e05c5c' },
 ];
 
 const CreatePostModal = ({ isOpen, onClose, teacherId }) => {
   const [selected, setSelected] = useState(null);
+  const [selectedSemesters, setSelectedSemesters] = useState({});
+  const [selectedSections, setSelectedSections] = useState([]);
   const navigate = useNavigate();
+  const me = (() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('user')) || {};
+      return u.id ?? u.u_id ?? teacherId;
+    } catch {
+      return teacherId;
+    }
+  })();
 
   // ✅ navigate inside useEffect, never during render
   useEffect(() => {
@@ -32,6 +43,8 @@ const CreatePostModal = ({ isOpen, onClose, teacherId }) => {
 
   const handleClose = () => {
     setSelected(null);
+    setSelectedSemesters({});
+    setSelectedSections([]);
     onClose();
   };
 
@@ -58,7 +71,11 @@ const CreatePostModal = ({ isOpen, onClose, teacherId }) => {
         isOpen={isOpen}
         onClose={handleClose}
         onBack={goBack}
-        onNext={() => setSelected('section')}
+        teacherId={me}
+        onNext={(semesters) => {
+          setSelectedSemesters(semesters || {});
+          setSelected('section');
+        }}
       />
     );
   }
@@ -69,10 +86,24 @@ const CreatePostModal = ({ isOpen, onClose, teacherId }) => {
         isOpen={isOpen}
         onClose={handleClose}
         onBack={() => setSelected('semester')}
+        teacherId={me}
+        selectedSemesters={selectedSemesters}
         onNext={(sections) => {
-          console.log('Selected sections:', sections);
-          handleClose();
+          setSelectedSections(Array.isArray(sections) ? sections : []);
+          setSelected('semester-message');
         }}
+      />
+    );
+  }
+  if (selected === 'semester-message') {
+    return (
+      <SemesterSectionMessageModal
+        isOpen={isOpen}
+        onClose={handleClose}
+        onBack={() => setSelected('section')}
+        teacherId={me}
+        selectedSemesters={selectedSemesters}
+        selectedSections={selectedSections}
       />
     );
   }

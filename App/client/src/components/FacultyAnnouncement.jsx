@@ -117,7 +117,7 @@ const FacultyAnnouncement = ({ isOpen, onClose, onBack }) => {
 
         {isAdmin && (
           <p className="small text-muted mb-2">
-            Type <strong>#</strong> then a name to post on behalf of an admin or teacher. Multiple tags create multiple posts (email only on the first).
+            Type <strong>#</strong> then a name to set who the post is <strong>from</strong> (student, teacher, or admin). Multiple tags create multiple posts (email only on the first).
           </p>
         )}
 

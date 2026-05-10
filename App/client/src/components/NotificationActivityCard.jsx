@@ -42,6 +42,8 @@ function PostEmojiReactions({ announcementId, onReacted, feedAlreadyReacted, fee
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState(null);
   const [alreadyReacted, setAlreadyReacted] = useState(!!feedAlreadyReacted);
+  /** Post author blocked this user — hide reaction UI (server rejects POST). */
+  const [blockedCannotReact, setBlockedCannotReact] = useState(false);
   const [reactedShortcode, setReactedShortcode] = useState(
     feedAlreadyReacted && typeof feedReactionEmoji === 'string' ? feedReactionEmoji : null
   );
@@ -63,6 +65,7 @@ function PostEmojiReactions({ announcementId, onReacted, feedAlreadyReacted, fee
       }
 
       setLoading(true);
+      setBlockedCannotReact(false);
       const rawUser = localStorage.getItem('user');
       const user = rawUser ? JSON.parse(rawUser) : null;
       const user_id = Number(user?.id ?? user?.u_id);
@@ -77,10 +80,17 @@ function PostEmojiReactions({ announcementId, onReacted, feedAlreadyReacted, fee
           if (!cancelled) {
             const d = eligRes?.data;
             const reacted = !!d?.alreadyReacted;
+            const blocked = !!d?.blocked_by_author;
             setAlreadyReacted(reacted);
+            setBlockedCannotReact(blocked && !reacted);
             setReactedShortcode(
               reacted && typeof d?.emoji_shortcode === 'string' ? d.emoji_shortcode : null
             );
+            if (blocked && !reacted) {
+              setChoices([]);
+              setLoading(false);
+              return;
+            }
           }
         }
       } catch (eligErr) {
@@ -88,6 +98,7 @@ function PostEmojiReactions({ announcementId, onReacted, feedAlreadyReacted, fee
         if (!cancelled) {
           setAlreadyReacted(false);
           setReactedShortcode(null);
+          setBlockedCannotReact(false);
         }
       }
 
@@ -142,6 +153,11 @@ function PostEmojiReactions({ announcementId, onReacted, feedAlreadyReacted, fee
         onReacted?.();
         return;
       }
+      if (e.response?.status === 403 || e.response?.data?.blocked_by_author) {
+        setBlockedCannotReact(true);
+        setErr(null);
+        return;
+      }
       setErr(e.response?.data?.message || e.message || 'Could not react');
     } finally {
       setSubmitting(false);
@@ -150,6 +166,14 @@ function PostEmojiReactions({ announcementId, onReacted, feedAlreadyReacted, fee
 
   if (loading) {
     return <p className="small text-muted mb-0">Loading reactions…</p>;
+  }
+
+  if (blockedCannotReact) {
+    return (
+      <p className="small text-muted mb-0" style={{ lineHeight: 1.45 }}>
+        You can&apos;t react here — the post owner has blocked interaction with your account.
+      </p>
+    );
   }
 
   if (alreadyReacted) {
@@ -378,14 +402,23 @@ const NotificationActivityCard = ({ item, onDismiss, onChanged }) => {
   const [sentAck, setSentAck] = useState(false);
   const reactionCount = Number(item.reaction_user_count) || 0;
 
-  const isPostKind = item.feed_kind === 'favourite_post' || item.feed_kind === 'about_favourite';
+  /** Post rows use /posts/reactonpost → Announcement_Reaction for counts. */
+  const isPostKind =
+    item.feed_kind === 'favourite_post' ||
+    item.feed_kind === 'about_favourite' ||
+    item.feed_kind === 'faculty_event' ||
+    item.feed_kind === 'public_broadcast';
 
   const headline =
     item.feed_kind === 'favourite_post'
       ? `${item.author_name || 'Someone'} shared a post`
       : item.feed_kind === 'about_favourite'
         ? 'Post mentions someone you follow'
-        : 'Faculty / campus update';
+        : item.feed_kind === 'faculty_event'
+          ? 'Faculty / campus update'
+          : item.feed_kind === 'public_broadcast'
+            ? `Public announcement — ${item.author_name || 'Someone'}`
+            : 'Update';
 
   const avatar = item.author_image || admin;
 

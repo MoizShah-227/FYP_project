@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import api from "../../config/axiosConfig.js";
 
 /**
- * Textarea with # mention: loads staff (admin/teacher), filters by name while typing.
+ * Textarea with # mention: loads users who may appear as Announcements.created_by (students, teachers, admins).
  * onTaggedAuthorsChange: ordered unique u_ids to post on behalf of.
  */
 export default function MentionTextarea({
@@ -10,6 +10,7 @@ export default function MentionTextarea({
   onChange,
   onTaggedAuthorsChange,
   enabled,
+  candidatesUrl = "/user/announcement-author-candidates",
   rows = 6,
   placeholder,
   className,
@@ -17,7 +18,7 @@ export default function MentionTextarea({
 }) {
   const wrapRef = useRef(null);
   const taRef = useRef(null);
-  const [staff, setStaff] = useState([]);
+  const [candidates, setCandidates] = useState([]);
   const [staffLoaded, setStaffLoaded] = useState(false);
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
@@ -27,16 +28,16 @@ export default function MentionTextarea({
   const loadStaff = useCallback(async () => {
     if (staffLoaded || !enabled) return;
     try {
-      const res = await api.get("/user/admins-and-teachers");
+      const res = await api.get(candidatesUrl);
       const list = Array.isArray(res.data) ? res.data : [];
-      setStaff(list);
+      setCandidates(list);
     } catch (e) {
       console.error(e.response?.data || e.message);
-      setStaff([]);
+      setCandidates([]);
     } finally {
       setStaffLoaded(true);
     }
-  }, [enabled, staffLoaded]);
+  }, [enabled, staffLoaded, candidatesUrl]);
 
   useEffect(() => {
     if (enabled && open && !staffLoaded) loadStaff();
@@ -51,11 +52,12 @@ export default function MentionTextarea({
     [onTaggedAuthorsChange]
   );
 
-  const filtered = staff.filter((u) => {
+  const filtered = candidates.filter((u) => {
     const q = (filter || "").toLowerCase();
     if (!q) return true;
     const name = (u.name || "").toLowerCase();
-    return name.includes(q);
+    const reg = String(u.reg_no || "").toLowerCase();
+    return name.includes(q) || reg.includes(q);
   }).slice(0, 8);
 
   const handleChange = (e) => {
@@ -131,7 +133,7 @@ export default function MentionTextarea({
         value={value}
         onChange={handleChange}
       />
-      {enabled && open && filtered.length > 0 && (
+      {enabled && open && staffLoaded && (
         <ul
           className="list-group position-absolute shadow border-0 rounded-3 overflow-hidden"
           style={{
@@ -144,18 +146,26 @@ export default function MentionTextarea({
             overflowY: "auto",
           }}
         >
-          {filtered.map((u) => (
-            <li
-              key={u.u_id}
-              className="list-group-item list-group-item-action py-2 small"
-              style={{ cursor: "pointer" }}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => selectUser(u)}
-            >
-              <span className="fw-semibold">{u.name}</span>
-              <span className="text-muted ms-2 text-capitalize">({u.user_type})</span>
+          {filtered.length === 0 ? (
+            <li className="list-group-item py-2 small text-muted">
+              {candidates.length === 0
+                ? "Could not load users. Check your connection."
+                : "No name or reg. no. matches — keep typing."}
             </li>
-          ))}
+          ) : (
+            filtered.map((u) => (
+              <li
+                key={u.u_id}
+                className="list-group-item list-group-item-action py-2 small"
+                style={{ cursor: "pointer" }}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => selectUser(u)}
+              >
+                <span className="fw-semibold">{u.name}</span>
+                <span className="text-muted ms-2 text-capitalize">({u.user_type})</span>
+              </li>
+            ))
+          )}
         </ul>
       )}
     </div>

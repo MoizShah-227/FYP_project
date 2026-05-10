@@ -8,8 +8,18 @@ const parseBodyDate = (v) => {
     return Number.isNaN(d.getTime()) ? null : d;
 };
 
+/** Announcements.created_by — user the post appears from (e.g. student when admin posts on their behalf) */
+const parseCreatedBy = (v) => {
+    const n = parseInt(String(v), 10);
+    return Number.isFinite(n) ? n : null;
+};
+
 export const PublicAnnoucement = async (req, res) => {
     const { message, image, type, created_at, created_by, from_date, to_date } = req.body;
+    const creatorId = parseCreatedBy(created_by);
+    if (creatorId == null) {
+        return res.status(400).json({ message: "created_by must be a valid user id" });
+    }
     const fromD = parseBodyDate(from_date);
     const toD = parseBodyDate(to_date);
     if (fromD && toD && fromD > toD) {
@@ -23,25 +33,30 @@ export const PublicAnnoucement = async (req, res) => {
         .input("image",sql.VarChar(500), image)
         .input("type",sql.VarChar(200), type)
         .input("created_at", sql.VarChar(200),created_at)
-        .input("created_by",sql.Int, created_by)
+        .input("created_by",sql.Int, creatorId)
         .input("from_date", sql.Date, fromD)
         .input("to_date", sql.Date, toD)
+        .input("is_active", sql.Int, 1)
         .query(`
-          INSERT INTO Announcements (message, image, type, created_at, created_by, from_date, to_date)
-          VALUES (@message, @image, @type, @created_at, @created_by, @from_date, @to_date)
+          INSERT INTO Announcements (message, image, type, created_at, created_by, from_date, to_date, is_active)
+          VALUES (@message, @image, @type, @created_at, @created_by, @from_date, @to_date, @is_active)
         `);
   
-      res.status(200).json({
+      return res.status(200).json({
         message: "Announcement added successfully",
         result
       });
     } catch (err) {
-      res.status(500).send(err.message);
+      return res.status(500).send(err.message);
     }
   };
   
 export const FacultyAnnoucement=async (req,res)=>{
     const { message, image, type, created_at, created_by, emailChecked, from_date, to_date } = req.body;
+    const creatorId = parseCreatedBy(created_by);
+    if (creatorId == null) {
+        return res.status(400).json({ message: "created_by must be a valid user id" });
+    }
     const fromD = parseBodyDate(from_date);
     const toD = parseBodyDate(to_date);
     if (fromD && toD && fromD > toD) {
@@ -58,7 +73,7 @@ export const FacultyAnnoucement=async (req,res)=>{
             }
         }catch(err){
           console.log(err.message)
-            res.status(500).send(err.message);
+            return res.status(500).send(err.message);
         }
     }
 
@@ -70,20 +85,21 @@ export const FacultyAnnoucement=async (req,res)=>{
           .input("image",sql.VarChar(500), image)
           .input("type",sql.VarChar(200), type)
           .input("created_at", sql.VarChar(200),created_at)
-          .input("created_by",sql.Int, created_by)
+          .input("created_by",sql.Int, creatorId)
           .input("from_date", sql.Date, fromD)
           .input("to_date", sql.Date, toD)
+          .input("is_active", sql.Int, 1)
           .query(`
-            INSERT INTO Announcements (message, image, type, created_at, created_by, from_date, to_date)
-            VALUES (@message, @image, @type, @created_at, @created_by, @from_date, @to_date)
+            INSERT INTO Announcements (message, image, type, created_at, created_by, from_date, to_date, is_active)
+            VALUES (@message, @image, @type, @created_at, @created_by, @from_date, @to_date, @is_active)
           `);
     
-        res.status(200).json({
+        return res.status(200).json({
           message: "Announcement added successfully",
           result
         });
       } catch (err) {
-        res.status(500).send(err.message);
+        return res.status(500).send(err.message);
       }
   
 }
@@ -115,6 +131,7 @@ export const reactionOnAnnouncement = async (req, res) => {
 
 
 export const getPublicAnnouncements = async (req, res) => {
+  console.log("getPublicAnnouncements");
   try {
     const pool = await poolPromise;
 
@@ -130,13 +147,13 @@ export const getPublicAnnouncements = async (req, res) => {
         u.image AS avatar
       FROM Announcements a
       JOIN Users u ON a.created_by = u.u_id
-      WHERE a.type = 'public'
+      WHERE a.type = 'public' OR a.type = 'faculty'
         AND (a.is_active IS NULL OR a.is_active = 1)
         AND (a.from_date IS NULL OR CAST(GETDATE() AS DATE) >= a.from_date)
         AND (a.to_date IS NULL OR CAST(GETDATE() AS DATE) <= a.to_date)
       ORDER BY a.created_at DESC
     `);
-
+      console.log(result.recordset);
     // Map rows to PostCard-friendly structure
     const posts = result.recordset.map(row => ({
       id: row.A_id,

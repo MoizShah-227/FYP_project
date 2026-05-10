@@ -103,7 +103,7 @@ const PublicAnnouncement = ({ isOpen, onClose, onBack }) => {
 
         {isAdmin && (
           <p className="small text-muted mb-2">
-            Type <strong>#</strong> then a name to post on behalf of an admin or teacher. You can tag more than once for multiple posts.
+            Type <strong>#</strong> then a name to set who the post is <strong>from</strong> (student, teacher, or admin). Leave untagged only if the post should show as yours. Multiple tags create multiple posts.
           </p>
         )}
 

@@ -1,21 +1,48 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { Checkbox } from './modalUtils';
 import { nextBtnStyle } from './modalStyles';
-const DEFAULT_SECTIONS = [
-  'CS 1A', 'CS 1B', 'CS 1C', 'SE 6A',
-  'SE 6B', 'SE 6C', 'SE 7A', 'AI 2A',
-  'AI 2B', 'AI 7A',
-];
+import api from '../../config/axiosConfig.js';
 
-const SectionModal = ({ isOpen, onClose, onBack, onNext, sections = DEFAULT_SECTIONS }) => {
+const SectionModal = ({ isOpen, onClose, onBack, onNext, sections = null, teacherId, selectedSemesters }) => {
   const [selected, setSelected] = useState([]);
+  const [dynamicSections, setDynamicSections] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    const shouldUseDynamic = !Array.isArray(sections);
+    if (!shouldUseDynamic) {
+      setDynamicSections([]);
+      return;
+    }
+    const run = async () => {
+      if (!Number.isFinite(Number(teacherId))) {
+        setDynamicSections([]);
+        return;
+      }
+      setLoading(true);
+      try {
+        const res = await api.post('/message/teacher-sections', {
+          teacher_id: Number(teacherId),
+          semester_filters: selectedSemesters || {},
+        });
+        setDynamicSections(Array.isArray(res.data?.sections) ? res.data.sections : []);
+      } catch (e) {
+        console.error(e.response?.data || e.message);
+        setDynamicSections([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    run();
+  }, [isOpen, sections, teacherId, selectedSemesters]);
 
   const toggle = (sec) => setSelected(prev =>
     prev.includes(sec) ? prev.filter(s => s !== sec) : [...prev, sec]
   );
+  const list = Array.isArray(sections) ? sections : dynamicSections;
+  if (!isOpen) return null;
 
   return (
     <div
@@ -46,7 +73,7 @@ const SectionModal = ({ isOpen, onClose, onBack, onNext, sections = DEFAULT_SECT
 
           {/* 2-column grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px' }}>
-            {sections.map(sec => (
+            {list.map(sec => (
               <div key={sec} className="d-flex align-items-center gap-2"
                 style={{ cursor: 'pointer' }} onClick={() => toggle(sec)}>
                 <Checkbox checked={selected.includes(sec)} />
@@ -54,9 +81,14 @@ const SectionModal = ({ isOpen, onClose, onBack, onNext, sections = DEFAULT_SECT
               </div>
             ))}
           </div>
+          {!loading && list.length === 0 ? (
+            <p className="small text-muted mt-2 mb-0">No sections found for selected semesters.</p>
+          ) : null}
 
           <div className="d-flex justify-content-end mt-4">
-            <button style={nextBtnStyle} onClick={() => onNext(selected)}>Next</button>
+            <button style={nextBtnStyle} onClick={() => onNext(selected)} disabled={loading}>
+              {loading ? 'Loading...' : 'Next'}
+            </button>
           </div>
         </div>
       </div>

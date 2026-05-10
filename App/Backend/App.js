@@ -9,6 +9,7 @@ import MessageRoute from "./Routes/MessagesRoute.js"
 import Education from "./Routes/EducationRoute.js"
 import ShowTeacherModelRoutes from "./Routes/showTeacherModelRoutes.js"
 import EventRoute from "./Routes/EventRoute.js"
+import SettingsRoute from "./Routes/SettingsRoute.js"
 import session from "express-session";
 
 const app = express();
@@ -41,6 +42,7 @@ app.use('/admin',AnnoucementRoute)
 app.use('/posts',PostsRoute)
 app.use('/message',MessageRoute)
 app.use('/event',EventRoute)
+app.use('/settings', SettingsRoute)
 app.use('/education',Education)
 app.use('/showTeacherModel',ShowTeacherModelRoutes)
 app.use("/uploads", express.static("uploads"));

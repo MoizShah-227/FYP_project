@@ -78,25 +78,34 @@ const PostCard = ({ id, name, time, content, avatar, reactionUserCount: initialR
   );
 };
 
+/** How often to refetch the feed (ms). Silent refresh — no full-page loading flash. */
+const FEED_POLL_MS = 30_000;
+
 function WishoraFeed() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchAnnouncements = async () => {
+    let cancelled = false;
+
+    const fetchAnnouncements = async (silent = false) => {
       try {
         const raw = localStorage.getItem("user");
         const user = raw ? JSON.parse(raw) : null;
-        const userId = user?.id;
+        const userId = user?.id ?? user?.u_id;
         if (userId == null || Number.isNaN(Number(userId))) {
           console.error("No user id in localStorage; cannot load posts");
-          setPosts([]);
+          if (!cancelled) {
+            setPosts([]);
+            if (!silent) setLoading(false);
+          }
           return;
         }
         const response = await api.get("/posts/public", {
           params: { userId },
           withCredentials: true,
         });
+        if (cancelled) return;
         const list = Array.isArray(response.data) ? response.data : [];
         setPosts(
           list.map((post) => ({
@@ -109,15 +118,31 @@ function WishoraFeed() {
           }))
         );
       } catch (error) {
-        console.error(
-          "Failed to fetch announcements:",
-          error.response?.data || error.message
-        );
+        if (!cancelled) {
+          console.error(
+            "Failed to fetch announcements:",
+            error.response?.data || error.message
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled && !silent) setLoading(false);
       }
     };
-    fetchAnnouncements();
+
+    fetchAnnouncements(false);
+
+    const intervalId = setInterval(() => fetchAnnouncements(true), FEED_POLL_MS);
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") fetchAnnouncements(true);
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   return (

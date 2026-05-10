@@ -7,6 +7,10 @@ import Dashboard from "./components/Dashboard";
 import AddEvent from "./components/AddEvents";
 import Analytics from "./components/Analytics";
 import Profile from "./components/Profile";
+import Setting from "./components/setting";
+import MuteTimeSettingsPage from "./settings/MuteTimeSettingsPage";
+import PrivateAccountSettingsPage from "./settings/PrivateAccountSettingsPage";
+import ChangePasswordSettingsPage from "./settings/ChangePasswordSettingsPage";
 import ReactionSettings from "./components/ReactionSetting";
 import FavouriteStudents from "./components/FavouriteStudents";
 import Students from "./components/Students";
@@ -29,6 +33,10 @@ function App() {
       <Route path="/add-event" element={<AddEvent />} />
       <Route path="/analytics" element={<Analytics />} />
       <Route path="/profile" element={<Profile />} />
+      <Route path="/settings" element={<Setting />} />
+      <Route path="/settings/notifications" element={<MuteTimeSettingsPage />} />
+      <Route path="/settings/private-account" element={<PrivateAccountSettingsPage />} />
+      <Route path="/settings/change-password" element={<ChangePasswordSettingsPage />} />
       <Route path="/reaction-setting" element={<ReactionSettings />} />
       <Route path="/favourite-students" element={<FavouriteStudents />} />
       <Route path="/students" element={<Students />} />

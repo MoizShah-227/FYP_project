@@ -1,0 +1,27 @@
+---
+description: Frontend API calls — axios instance, user id, params, and response handling like Post.jsx
+globs: client/**/*.{js,jsx}
+alwaysApply: false
+---
+
+# Frontend API usage (reference: `client/src/components/Post.jsx`, `client/config/axiosConfig.js`)
+
+## HTTP client
+
+- Import the shared instance: `import api from "../../config/axiosConfig.js"` (adjust path). Do not create ad-hoc `axios` bases per component unless there is a strong reason.
+
+## Auth / user context
+
+- Read the logged-in user from `localStorage.getItem("user")`, `JSON.parse`, then use `user?.id` (or the field the backend expects, e.g. `userId` in query params).
+- If `userId` is missing or not a valid number, avoid calling the API; set empty state and optionally `console.error` a clear message.
+
+## Requests
+
+- Use paths consistent with existing routers (e.g. `api.get("/posts/public", { params: { userId }, withCredentials: true })`).
+- Send `withCredentials: true` when the endpoint relies on cookies/session (match sibling calls in the codebase).
+
+## Response handling
+
+- Guard shapes before use: e.g. `Array.isArray(response.data) ? response.data : []`, or `Array.isArray(res.data?.items) ? res.data.items : []` depending on the endpoint.
+- Map API fields to component props in one place (`map`) so naming matches backend JSON (`reactionUserCount`, `id`, `content`, etc.).
+- In `catch`, log `error.response?.data || error.message`; reset UI state to safe defaults in `finally` where loading flags are used.

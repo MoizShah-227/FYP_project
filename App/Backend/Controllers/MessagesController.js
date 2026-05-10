@@ -5,6 +5,78 @@ import { poolPromise, sql } from "../Config/DB.js";
  * ALTER TABLE Messages ADD birthday_wish BIT NOT NULL CONSTRAINT DF_Messages_birthday_wish DEFAULT 0;
  */
 
+const COLUMN_CANDIDATES = {
+  studentSemesterSemester: ["semester", "sem", "semester_no", "sem_no", "current_semester"],
+  studentSemesterSection: ["section", "sec", "class_section", "section_name"],
+  usersDepartment: ["department", "dept", "program"],
+};
+
+const normalizeColumn = (name) => String(name || "").trim().toLowerCase();
+const wrapCol = (col) => `[${String(col).replace(/]/g, "]]")}]`;
+const DISCIPLINE_CODES = ["BSCS", "BSSE", "BSAI"];
+
+function disciplineCaseSql(tableAlias, deptCol) {
+  const c = `${tableAlias}.${wrapCol(deptCol)}`;
+  return `
+    CASE
+      WHEN LOWER(LTRIM(RTRIM(COALESCE(${c}, '')))) IN ('bscs', 'computer science', 'cs') THEN 'BSCS'
+      WHEN LOWER(LTRIM(RTRIM(COALESCE(${c}, '')))) IN ('bsse', 'software engineering', 'se') THEN 'BSSE'
+      WHEN LOWER(LTRIM(RTRIM(COALESCE(${c}, '')))) IN ('bsai', 'artificial intelligence', 'ai') THEN 'BSAI'
+      ELSE NULL
+    END
+  `;
+}
+
+async function getTableColumns(pool, tableName) {
+  const meta = await pool
+    .request()
+    .input("tableName", sql.NVarChar(128), tableName)
+    .query(`
+      SELECT COLUMN_NAME
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_NAME = @tableName
+    `);
+  return new Set((meta.recordset || []).map((r) => normalizeColumn(r.COLUMN_NAME)));
+}
+
+function pickColumn(availableSet, candidates) {
+  for (const c of candidates) {
+    if (availableSet.has(normalizeColumn(c))) return c;
+  }
+  return null;
+}
+
+function parseSemesterFilters(rawFilters) {
+  if (!rawFilters || typeof rawFilters !== "object") return [];
+  const out = [];
+  for (const [deptRaw, semList] of Object.entries(rawFilters)) {
+    const dept = String(deptRaw || "").trim();
+    if (!dept) continue;
+    const arr = Array.isArray(semList) ? semList : [];
+    for (const s of arr) {
+      const sem = parseInt(String(s), 10);
+      if (Number.isFinite(sem)) out.push({ dept, sem });
+    }
+  }
+  return out;
+}
+
+function makeSemesterFilterSql(filters, deptExpr = "SS.department", semExpr = "SS.sem_raw") {
+  if (!filters.length) return { whereSql: "", bind: () => {} };
+  const clauses = filters.map(
+    (_, i) => `(${deptExpr} = @dept${i} AND TRY_CONVERT(INT, ${semExpr}) = @sem${i})`
+  );
+  return {
+    whereSql: ` AND (${clauses.join(" OR ")})`,
+    bind: (req) => {
+      filters.forEach((f, i) => {
+        req.input(`dept${i}`, sql.NVarChar(100), f.dept);
+        req.input(`sem${i}`, sql.Int, f.sem);
+      });
+    },
+  };
+}
+
 /** True if sender may send a tagged birthday wish to receiver this calendar year */
 export const BirthdayWishEligibility = async (req, res) => {
   const sender_id = parseInt(String(req.query.sender_id), 10);
@@ -361,5 +433,201 @@ export const SendMessage = async (req, res) => {
       });
     }
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+/** Teacher's available semester choices from their enrolled students */
+export const GetTeacherSemesterFilters = async (req, res) => {
+  const teacherId = parseInt(String(req.params.teacherId), 10);
+  if (!Number.isFinite(teacherId)) {
+    return res.status(400).json({ departments: [] });
+  }
+  try {
+    const pool = await poolPromise;
+    const ssCols = await getTableColumns(pool, "StudentSemester");
+    const uCols = await getTableColumns(pool, "Users");
+    const semCol = pickColumn(ssCols, COLUMN_CANDIDATES.studentSemesterSemester);
+    const deptCol = pickColumn(uCols, COLUMN_CANDIDATES.usersDepartment);
+
+    if (!semCol || !deptCol) {
+      return res.status(200).json({ departments: [] });
+    }
+
+    const result = await pool
+      .request()
+      .input("tid", sql.Int, teacherId)
+      .query(`
+        WITH t AS (
+          SELECT DISTINCT
+            ${disciplineCaseSql("U", deptCol)} AS department,
+            TRY_CONVERT(INT, SS.${wrapCol(semCol)}) AS sem_no
+          FROM TeacherCourse TC
+          INNER JOIN Enrollments E ON E.course_id = TC.course_id
+          INNER JOIN StudentSemester SS ON SS.SS_id = E.student_semester_id
+          INNER JOIN Users U ON U.u_id = SS.student_id
+          WHERE TC.teacher_id = @tid
+            AND LOWER(LTRIM(RTRIM(ISNULL(U.user_type, '')))) = 'student'
+        )
+        SELECT department, sem_no
+        FROM t
+        WHERE department IS NOT NULL AND sem_no IS NOT NULL
+        ORDER BY department, sem_no
+      `);
+
+    const grouped = {};
+    for (const row of result.recordset || []) {
+      if (!grouped[row.department]) grouped[row.department] = [];
+      grouped[row.department].push(Number(row.sem_no));
+    }
+
+    const departments = DISCIPLINE_CODES.map((department) => ({
+      department,
+      semesters: [...new Set(grouped[department] || [])].sort((a, b) => a - b),
+    }));
+
+    return res.status(200).json({ departments });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error", departments: [] });
+  }
+};
+
+/** Sections teacher has in selected semester filters */
+export const GetTeacherSectionsForSemesters = async (req, res) => {
+  const teacherId = parseInt(String(req.body.teacher_id), 10);
+  const filters = parseSemesterFilters(req.body.semester_filters);
+  if (!Number.isFinite(teacherId) || filters.length === 0) {
+    return res.status(400).json({ sections: [] });
+  }
+  try {
+    const pool = await poolPromise;
+    const ssCols = await getTableColumns(pool, "StudentSemester");
+    const uCols = await getTableColumns(pool, "Users");
+    const sectionCol = pickColumn(ssCols, COLUMN_CANDIDATES.studentSemesterSection);
+    const semCol = pickColumn(ssCols, COLUMN_CANDIDATES.studentSemesterSemester);
+    const deptCol = pickColumn(uCols, COLUMN_CANDIDATES.usersDepartment);
+
+    if (!sectionCol || !semCol || !deptCol) {
+      return res.status(200).json({ sections: [] });
+    }
+
+    const req = pool.request().input("tid", sql.Int, teacherId);
+    const { whereSql, bind } = makeSemesterFilterSql(filters, "SS.department", "SS.sem_raw");
+    bind(req);
+
+    const result = await req.query(`
+      WITH SS AS (
+        SELECT
+          SS0.SS_id,
+          ${disciplineCaseSql("U", deptCol)} AS department,
+          TRY_CONVERT(INT, SS0.${wrapCol(semCol)}) AS sem_raw,
+          LTRIM(RTRIM(COALESCE(SS0.${wrapCol(sectionCol)}, ''))) AS section_name
+        FROM StudentSemester SS0
+        INNER JOIN Users U ON U.u_id = SS0.student_id
+        WHERE LOWER(LTRIM(RTRIM(ISNULL(U.user_type, '')))) = 'student'
+      )
+      SELECT DISTINCT SS.section_name
+      FROM TeacherCourse TC
+      INNER JOIN Enrollments E ON E.course_id = TC.course_id
+      INNER JOIN SS ON SS.SS_id = E.student_semester_id
+      WHERE TC.teacher_id = @tid
+        AND SS.section_name <> ''
+        AND SS.department IS NOT NULL
+        ${whereSql}
+      ORDER BY SS.section_name
+    `);
+
+    const sections = (result.recordset || []).map((r) => r.section_name).filter(Boolean);
+    return res.status(200).json({ sections });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error", sections: [] });
+  }
+};
+
+/** Send one message to students matching selected semester + section filters */
+export const SendMessageToFilteredStudents = async (req, res) => {
+  const teacherId = parseInt(String(req.body.teacher_id), 10);
+  const message = String(req.body.message || "").trim();
+  const filters = parseSemesterFilters(req.body.semester_filters);
+  const sections = Array.isArray(req.body.sections)
+    ? req.body.sections.map((s) => String(s || "").trim()).filter(Boolean)
+    : [];
+
+  if (!Number.isFinite(teacherId) || !message || filters.length === 0) {
+    return res.status(400).json({ message: "teacher_id, message, semester_filters are required" });
+  }
+
+  try {
+    const pool = await poolPromise;
+    const ssCols = await getTableColumns(pool, "StudentSemester");
+    const uCols = await getTableColumns(pool, "Users");
+    const msgCols = await getTableColumns(pool, "Messages");
+    const semCol = pickColumn(ssCols, COLUMN_CANDIDATES.studentSemesterSemester);
+    const sectionCol = pickColumn(ssCols, COLUMN_CANDIDATES.studentSemesterSection);
+    const deptCol = pickColumn(uCols, COLUMN_CANDIDATES.usersDepartment);
+    if (!semCol || !deptCol) {
+      return res.status(500).json({ message: "Database semester/department columns not configured." });
+    }
+
+    const reqQ = pool
+      .request()
+      .input("tid", sql.Int, teacherId)
+      .input("msg", sql.VarChar(500), message.slice(0, 500));
+
+    const { whereSql, bind } = makeSemesterFilterSql(filters, "SS0.department", "SS0.sem_raw");
+    bind(reqQ);
+
+    let sectionSql = "";
+    if (sections.length > 0 && sectionCol) {
+      const secPlaceholders = sections.map((_, i) => `@sec${i}`).join(", ");
+      sections.forEach((s, i) => reqQ.input(`sec${i}`, sql.NVarChar(100), s));
+      sectionSql = ` AND SS0.section_name IN (${secPlaceholders})`;
+    }
+
+    const includeBirthdayWish = msgCols.has("birthday_wish");
+    const messageColumns = includeBirthdayWish
+      ? "(sender_id, receiver_id, message, emoji, birthday_wish)"
+      : "(sender_id, receiver_id, message, emoji)";
+    const birthdayValue = includeBirthdayWish ? ", 0" : "";
+
+    const inserted = await reqQ.query(`
+      WITH SS AS (
+        SELECT
+          SS0.SS_id,
+          SS0.student_id,
+          ${disciplineCaseSql("U", deptCol)} AS department,
+          TRY_CONVERT(INT, SS0.${wrapCol(semCol)}) AS sem_raw
+          ${sectionCol ? `, LTRIM(RTRIM(COALESCE(SS0.${wrapCol(sectionCol)}, ''))) AS section_name` : ", '' AS section_name"}
+        FROM StudentSemester SS0
+        INNER JOIN Users U ON U.u_id = SS0.student_id
+        WHERE LOWER(LTRIM(RTRIM(ISNULL(U.user_type, '')))) = 'student'
+      ),
+      targets AS (
+        SELECT DISTINCT SS0.student_id
+        FROM TeacherCourse TC
+        INNER JOIN Enrollments E ON E.course_id = TC.course_id
+        INNER JOIN SS SS0 ON SS0.SS_id = E.student_semester_id
+        WHERE TC.teacher_id = @tid
+          AND SS0.department IS NOT NULL
+          ${whereSql}
+          ${sectionSql}
+      )
+      INSERT INTO Messages ${messageColumns}
+      OUTPUT INSERTED.receiver_id
+      SELECT @tid, T.student_id, @msg, NULL${birthdayValue}
+      FROM targets T
+      WHERE T.student_id <> @tid
+    `);
+
+    const receiverIds = [...new Set((inserted.recordset || []).map((r) => Number(r.receiver_id)).filter(Number.isFinite))];
+    return res.status(201).json({
+      message: "Message sent successfully",
+      totalStudents: receiverIds.length,
+      receiver_ids: receiverIds,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: error.message || "Server error" });
   }
 };

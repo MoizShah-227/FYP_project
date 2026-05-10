@@ -1,14 +1,37 @@
-import React, { useState } from 'react';
-import { X, Check } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { X } from 'lucide-react';
 import { Checkbox } from './modalUtils';
 import { nextBtnStyle } from './modalStyles';
-const DEPARTMENTS = ['BSSE', 'BSAI', 'BSCS'];
+import api from '../../config/axiosConfig.js';
 
-const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
-
-const SemesterModal = ({ isOpen, onClose, onBack, onNext }) => {
+const SemesterModal = ({ isOpen, onClose, onBack, onNext, teacherId }) => {
   const [selected, setSelected] = useState({}); 
-  // shape: { BSSE: [1,2], BSAI: [3], BSCS: [] }
+  const [departments, setDepartments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const deptNames = useMemo(() => departments.map((d) => d.department), [departments]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const run = async () => {
+      if (!Number.isFinite(Number(teacherId))) {
+        setDepartments([]);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const res = await api.get(`/message/teacher-semesters/${teacherId}`);
+        setDepartments(Array.isArray(res.data?.departments) ? res.data.departments : []);
+      } catch (e) {
+        console.error(e.response?.data || e.message);
+        setDepartments([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    run();
+  }, [isOpen, teacherId]);
 
   if (!isOpen) return null;
 
@@ -25,7 +48,9 @@ const SemesterModal = ({ isOpen, onClose, onBack, onNext }) => {
 
   const selectAll = () => {
     const all = {};
-    DEPARTMENTS.forEach(d => { all[d] = [...SEMESTERS]; });
+    departments.forEach((d) => {
+      all[d.department] = Array.isArray(d.semesters) ? [...d.semesters] : [];
+    });
     setSelected(all);
   };
 
@@ -65,16 +90,16 @@ const SemesterModal = ({ isOpen, onClose, onBack, onNext }) => {
               onClick={selectAll}>Select All</span>
           </div>
 
-          {/* 3-column grid */}
+          {/* dynamic grid */}
           <div className="d-flex gap-3">
-            {DEPARTMENTS.map(dept => (
+            {deptNames.map(dept => (
               <div key={dept} style={{ flex: 1 }}>
                 {/* Dept header */}
                 <div className="d-flex align-items-center gap-2 mb-2">
                   <Checkbox checked={false} />
                   <span style={{ fontSize: 13, fontWeight: 600, color: '#07333d' }}>{dept}</span>
                 </div>
-                {SEMESTERS.map(sem => (
+                {(departments.find((d) => d.department === dept)?.semesters || []).map(sem => (
                   <div key={sem} className="d-flex align-items-center gap-2 mb-2"
                     style={{ cursor: 'pointer' }} onClick={() => toggle(dept, sem)}>
                     <Checkbox checked={isChecked(dept, sem)} />
@@ -86,9 +111,18 @@ const SemesterModal = ({ isOpen, onClose, onBack, onNext }) => {
               </div>
             ))}
           </div>
+          {!loading && deptNames.length === 0 ? (
+            <p className="small text-muted mt-2 mb-0">No semester data found for your students.</p>
+          ) : null}
 
           <div className="d-flex justify-content-end mt-4">
-            <button style={nextBtnStyle} onClick={() => onNext(selected)}>Next</button>
+            <button
+              style={nextBtnStyle}
+              onClick={() => onNext(selected)}
+              disabled={loading || Object.keys(selected).length === 0}
+            >
+              {loading ? 'Loading...' : 'Next'}
+            </button>
           </div>
         </div>
       </div>
