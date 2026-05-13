@@ -77,6 +77,40 @@ function makeSemesterFilterSql(filters, deptExpr = "SS.department", semExpr = "S
   };
 }
 
+/**
+ * Birthday person (receiver) may receive birthday UI / wishes from sender when:
+ * - no Preferences row, or private_status is off → allowed
+ * - private on + empty includes ("Hidden") → not allowed
+ * - private on + includes list → only if sender_id is in that list
+ */
+async function receiverAllowsBirthdayWishFromSender(pool, senderId, receiverId) {
+  const r = await pool
+    .request()
+    .input("receiver_id", sql.Int, receiverId)
+    .query(`
+      SELECT TOP 1 p.private_status, p.includes
+      FROM Preferences p
+      WHERE p.user_id = @receiver_id
+    `);
+  const row = r.recordset?.[0];
+  if (!row) return { allowed: true };
+  const priv = Number(row.private_status) === 1;
+  if (!priv) return { allowed: true };
+  const inc =
+    row.includes != null ? String(row.includes).trim() : "";
+  if (!inc) return { allowed: false, reason: "receiver_private_account" };
+  const ids = inc
+    .split(/[,;]/)
+    .map((s) => parseInt(String(s).trim(), 10))
+    .filter((n) => Number.isFinite(n));
+  if (ids.length === 0) return { allowed: false, reason: "receiver_private_account" };
+  const allowed = ids.includes(Number(senderId));
+  return {
+    allowed,
+    reason: allowed ? undefined : "receiver_not_in_birthday_allowlist",
+  };
+}
+
 /** True if sender may send a tagged birthday wish to receiver this calendar year */
 export const BirthdayWishEligibility = async (req, res) => {
   const sender_id = parseInt(String(req.query.sender_id), 10);
@@ -91,6 +125,16 @@ export const BirthdayWishEligibility = async (req, res) => {
 
   try {
     const pool = await poolPromise;
+
+    const gate = await receiverAllowsBirthdayWishFromSender(pool, sender_id, receiver_id);
+    if (!gate.allowed) {
+      return res.status(200).json({
+        canWish: false,
+        alreadyWishedThisYear: false,
+        reason: gate.reason || "receiver_private_account",
+      });
+    }
+
     const dup = await pool
       .request()
       .input("sender_id", sql.Int, sender_id)
@@ -174,6 +218,20 @@ export const GetMessageSentList = async (req, res) => {
   }
 };
 
+/** Teachers only: hide senders you blocked from received list. */
+const teacherHideBlockedReceivedSql = `
+  AND NOT EXISTS (
+    SELECT 1
+    FROM UserBlocked ub
+    WHERE ub.user_id = @me
+      AND ub.blocked_user_id = a.u_id
+      AND EXISTS (
+        SELECT 1 FROM Users um
+        WHERE um.u_id = @me
+          AND LOWER(LTRIM(RTRIM(ISNULL(um.user_type, '')))) = N'teacher'
+      )
+  )`;
+
 /** People who messaged you (you = receiver) — latest incoming preview per contact */
 export const GetMessageReceivedList = async (req, res) => {
   const me = parseInt(String(req.params.id), 10);
@@ -206,6 +264,8 @@ export const GetMessageReceivedList = async (req, res) => {
         WHERE sender_id = a.u_id AND receiver_id = @me
         ORDER BY sent_at DESC, M_id DESC
       ) lm
+      WHERE 1=1
+      ${teacherHideBlockedReceivedSql}
       ORDER BY a.last_sent_at DESC
     `);
 
@@ -225,6 +285,20 @@ export const GetMessageReceivedList = async (req, res) => {
     return res.status(500).json({ message: err.message || "Server error", contacts: [] });
   }
 };
+
+/** Teachers only: hide inbox rows for people you blocked (UserBlocked.user_id = you). */
+const teacherHideBlockedContactsSql = `
+  AND NOT EXISTS (
+    SELECT 1
+    FROM UserBlocked ub
+    WHERE ub.user_id = @me
+      AND ub.blocked_user_id = c.u_id
+      AND EXISTS (
+        SELECT 1 FROM Users um
+        WHERE um.u_id = @me
+          AND LOWER(LTRIM(RTRIM(ISNULL(um.user_type, '')))) = N'teacher'
+      )
+  )`;
 
 /** Mixed inbox list (sent + received together) — latest message per contact */
 export const GetMessageMixedList = async (req, res) => {
@@ -264,6 +338,7 @@ export const GetMessageMixedList = async (req, res) => {
       FROM convo c
       INNER JOIN Users u ON u.u_id = c.u_id
       WHERE c.rn = 1
+      ${teacherHideBlockedContactsSql}
       ORDER BY c.sent_at DESC
     `);
 
@@ -320,6 +395,17 @@ export const GetMessageInbox = async (req, res) => {
       FROM convo c
       INNER JOIN Users u ON u.u_id = c.other_id
       WHERE c.rn = 1
+      AND NOT EXISTS (
+        SELECT 1
+        FROM UserBlocked ub
+        WHERE ub.user_id = @me
+          AND ub.blocked_user_id = c.other_id
+          AND EXISTS (
+            SELECT 1 FROM Users um
+            WHERE um.u_id = @me
+              AND LOWER(LTRIM(RTRIM(ISNULL(um.user_type, '')))) = N'teacher'
+          )
+      )
       ORDER BY c.sent_at DESC
     `);
 
@@ -391,6 +477,15 @@ export const SendMessage = async (req, res) => {
       const rid = parseInt(String(receiver_id), 10);
       if (!Number.isFinite(sid) || !Number.isFinite(rid) || sid === rid) {
         return res.status(400).json({ message: "Invalid sender or receiver" });
+      }
+      const gate = await receiverAllowsBirthdayWishFromSender(pool, sid, rid);
+      if (!gate.allowed) {
+        return res.status(403).json({
+          message:
+            gate.reason === "receiver_not_in_birthday_allowlist"
+              ? "This user only accepts birthday wishes from people on their list."
+              : "Birthday wishes are not available for this user’s privacy settings.",
+        });
       }
       const dup = await pool
         .request()

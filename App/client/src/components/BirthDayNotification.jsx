@@ -148,6 +148,7 @@ const BirthdayNotification = ({ name, receiverId, onClose, onWishCompleted }) =>
           setEligibility({
             canWish: res.data?.canWish !== false,
             alreadyWishedThisYear: !!res.data?.alreadyWishedThisYear,
+            reason: res.data?.reason || null,
           });
         }
       } catch (e) {
@@ -201,6 +202,18 @@ const BirthdayNotification = ({ name, receiverId, onClose, onWishCompleted }) =>
         setEligibility({ canWish: false, alreadyWishedThisYear: true });
         setStep('wished');
         onWishCompleted?.();
+        return;
+      }
+      if (err.response?.status === 403) {
+        alert(err.response?.data?.message || 'Cannot send birthday wish.');
+        setEligibility({
+          canWish: false,
+          alreadyWishedThisYear: false,
+          reason:
+            String(err.response?.data?.message || '').includes('people on their list')
+              ? 'receiver_not_in_birthday_allowlist'
+              : 'receiver_private_account',
+        });
         return;
       }
       throw err;
@@ -269,7 +282,11 @@ const BirthdayNotification = ({ name, receiverId, onClose, onWishCompleted }) =>
         </div>
 
         <div style={{ fontSize: '0.85rem', color: '#555', margin: '12px 0 14px' }}>
-          Would you like to wish {name}?
+          {eligibility?.reason === 'receiver_private_account'
+            ? `${name} has private account settings — birthday wishes are not shown.`
+            : eligibility?.reason === 'receiver_not_in_birthday_allowlist'
+              ? `${name} only accepts birthday wishes from people on their list.`
+              : `Would you like to wish ${name}?`}
         </div>
 
         <div className="d-flex gap-2">

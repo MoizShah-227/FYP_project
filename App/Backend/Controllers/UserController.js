@@ -155,12 +155,42 @@ export const GetAnnouncementAuthorCandidates = async (req, res) => {
   }
 };
 
+/** Seconds since midnight from "HH:mm:ss" / "HH:mm" (same idea as SettingsController). */
+function parseClockToSeconds(t) {
+  const parts = String(t ?? "")
+    .trim()
+    .split(":");
+  const h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  const s = parseInt(parts[2], 10);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return 0;
+  const ss = Number.isFinite(s) ? s : 0;
+  return ((h * 60 + m) * 60 + ss) % 86400;
+}
+
+/**
+ * True if clock `sec` lies inside the closed daily window [startStr, endStr].
+ * Overnight when start > end (e.g. 23:00–08:30 mute block).
+ */
+function isClockInsideWindow(sec, startStr, endStr) {
+  const a = parseClockToSeconds(startStr);
+  const b = parseClockToSeconds(endStr);
+  if (a <= b) return sec >= a && sec <= b;
+  return sec >= a || sec <= b;
+}
+
 /**
  * Feed items for Notifications: posts by favourites (react), posts mentioning favourites (react),
  * faculty-wide / Teacher's Day style posts for faculty (`faculty_event`),
  * any other `public` announcement is shown to all users (`public_broadcast`).
  * Rows are skipped for the viewer when their display name appears in the message body (post addressed to them).
  * Query params: days (optional, default 21) — how far back to include announcements.
+ *
+ * Teachers only: if a `Preferences` row exists, activity is hidden while server time is inside
+ * the mute window (start_time–end_time, same as Notification → Mute Time Settings; overnight ranges
+ * supported). When not muted, optional `includes` filter applies only if `private_status` is false:
+ * comma-separated substrings must appear in the post message, or if every token is numeric,
+ * only posts whose author_id is in that list are kept.
  */
 export const GetNotificationsFeed = async (req, res) => {
   const { id } = req.params;
@@ -280,7 +310,7 @@ export const GetNotificationsFeed = async (req, res) => {
         ORDER BY x.created_at DESC
       `);
 
-    const items = (result.recordset || []).map((row) => ({
+    let items = (result.recordset || []).map((row) => ({
       announcement_id: row.announcement_id,
       feed_kind: row.feed_kind,
       message: row.message,
@@ -294,6 +324,59 @@ export const GetNotificationsFeed = async (req, res) => {
       viewer_reaction_emoji: row.viewer_reaction_emoji || null,
     }));
 
+    /** Teachers only: preferences row = mute window + optional reference filter */
+    if (ut === "teacher") {
+      const prefRes = await pool.request().input("uid", sql.Int, me).query(`
+        SELECT TOP 1
+          CONVERT(varchar(8), start_time, 108) AS start_time,
+          CONVERT(varchar(8), end_time, 108) AS end_time,
+          private_status,
+          includes
+        FROM Preferences
+        WHERE user_id = @uid
+      `);
+      const prow = prefRes.recordset?.[0];
+      if (prow) {
+        const startT = prow.start_time || "23:00:00";
+        const endT = prow.end_time || "08:30:00";
+        const nowRes = await pool.request().query(`
+          SELECT CONVERT(varchar(8), GETDATE(), 108) AS now_time
+        `);
+        const nowStr = nowRes.recordset?.[0]?.now_time || "00:00:00";
+        const nowSec = parseClockToSeconds(nowStr);
+
+        if (isClockInsideWindow(nowSec, startT, endT)) {
+          items = [];
+        } else {
+          const privateStatus = !!prow.private_status;
+          const incRaw =
+            prow.includes != null ? String(prow.includes).trim() : "";
+          if (!privateStatus && incRaw) {
+            const parts = incRaw
+              .split(/[,;]/)
+              .map((x) => x.trim())
+              .filter(Boolean);
+            const allNumeric =
+              parts.length > 0 &&
+              parts.every((p) => /^\d+$/.test(p));
+            if (allNumeric) {
+              const allowed = new Set(parts.map((p) => parseInt(p, 10)));
+              items = items.filter((it) =>
+                allowed.has(Number(it.author_id))
+              );
+            } else {
+              items = items.filter((it) => {
+                const msg = String(it.message || "").toLowerCase();
+                return parts.some((p) =>
+                  msg.includes(p.toLowerCase())
+                );
+              });
+            }
+          }
+        }
+      }
+    }
+
     return res.status(200).json({
       viewer_is_faculty: isTeacher,
       items,
@@ -304,7 +387,24 @@ export const GetNotificationsFeed = async (req, res) => {
   }
 };
 
-/** Favourites of @id whose birthday is today — only if viewer has not already sent a birthday_wish this year */
+/** Exclude birthday person u for viewer @id when private + (hidden OR viewer not in includes). */
+const birthdayPersonBlocksViewerSql = `
+  EXISTS (
+    SELECT 1 FROM Preferences p
+    WHERE p.user_id = u.u_id
+      AND p.private_status = 1
+      AND (
+        p.includes IS NULL
+        OR LTRIM(RTRIM(CAST(p.includes AS NVARCHAR(500)))) = N''
+        OR CHARINDEX(
+          N',' + LTRIM(RTRIM(CAST(@id AS NVARCHAR(20)))) + N',',
+          N',' + REPLACE(REPLACE(LTRIM(RTRIM(CAST(p.includes AS NVARCHAR(500)))), N' ', N''), N',,', N',') + N','
+        ) = 0
+      )
+  )`;
+
+/** Favourites of @id whose birthday is today — only if viewer has not already sent a birthday_wish this year.
+ * If birthday person has private account with an includes list, only those user IDs see the reminder. */
 export const GetFavouriteBirthdays = async (req, res) => {
   const viewerId = parseInt(String(req.params.id), 10);
   if (!Number.isFinite(viewerId)) {
@@ -329,6 +429,7 @@ export const GetFavouriteBirthdays = async (req, res) => {
           AND u.dob IS NOT NULL
           AND DAY(u.dob) = DAY(GETDATE())
           AND MONTH(u.dob) = MONTH(GETDATE())
+          AND NOT (${birthdayPersonBlocksViewerSql})
           AND NOT EXISTS (
             SELECT 1 FROM Messages m
             WHERE m.sender_id = @id
