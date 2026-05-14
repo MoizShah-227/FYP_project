@@ -50,7 +50,7 @@ function Analytics() {
               >
                 <div className="d-flex align-items-center mb-1">
                   <img
-                    src={user.image || "/default-avatar.png"}
+                    src={`http://localhost:5004/uploads/${user.image}`}
                     alt={user.name}
                     className="rounded-circle me-3"
                     style={{ width: '50px', height: '50px', objectFit: 'cover' }}

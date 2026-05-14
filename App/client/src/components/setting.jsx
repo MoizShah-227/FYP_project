@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
 import { TEAL } from '../settings/settingsShared';
+import api from '../../config/axiosConfig.js';
 
 function isTeacherFromStorage() {
   try {
@@ -46,14 +47,116 @@ function SettingsRow({ title, subtitle, onClick }) {
   );
 }
 
+function SettingsToggleRow({ title, subtitle, checked, disabled, onToggle }) {
+  return (
+    <div
+      style={{ ...cardStyle, cursor: disabled ? 'wait' : 'pointer' }}
+      onClick={() => !disabled && onToggle?.(!checked)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && !disabled) {
+          e.preventDefault();
+          onToggle?.(!checked);
+        }
+      }}
+    >
+      <span className="text-start">
+        <span className="d-block fw-semibold" style={{ color: '#111', fontSize: '15px' }}>
+          {title}
+        </span>
+        <span className="d-block small text-muted mt-1" style={{ fontSize: '13px' }}>
+          {subtitle}
+        </span>
+      </span>
+      <span
+        aria-hidden
+        style={{
+          width: 42,
+          height: 24,
+          background: checked ? TEAL : '#ccc',
+          borderRadius: 12,
+          position: 'relative',
+          flexShrink: 0,
+          transition: 'background 0.15s',
+          opacity: disabled ? 0.6 : 1,
+        }}
+      >
+        <span
+          style={{
+            position: 'absolute',
+            top: 2,
+            left: checked ? 20 : 2,
+            width: 20,
+            height: 20,
+            background: '#fff',
+            borderRadius: '50%',
+            transition: 'left 0.15s',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+          }}
+        />
+      </span>
+    </div>
+  );
+}
+
+function getUserId() {
+  try {
+    const raw = localStorage.getItem('user');
+    const u = raw ? JSON.parse(raw) : null;
+    return u?.id ?? u?.u_id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Teachers only — hub links to dedicated settings routes */
 export default function Setting() {
   const navigate = useNavigate();
   const allowed = isTeacherFromStorage();
+  const userId = getUserId();
+
+  const [blockOpposite, setBlockOpposite] = useState(false);
+  const [savingBlockOG, setSavingBlockOG] = useState(false);
 
   useEffect(() => {
     if (!allowed) navigate('/profile', { replace: true });
   }, [allowed, navigate]);
+
+  useEffect(() => {
+    if (!allowed || userId == null) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api.get(`/settings/preferences/${userId}`);
+        if (!cancelled) setBlockOpposite(!!res.data?.block_opposite_gender);
+      } catch (e) {
+        console.warn('preferences fetch failed:', e.response?.data || e.message);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [allowed, userId]);
+
+  const toggleBlockOpposite = async (next) => {
+    if (userId == null || savingBlockOG) return;
+    const prev = blockOpposite;
+    setBlockOpposite(next);
+    setSavingBlockOG(true);
+    try {
+      await api.put('/settings/preferences', {
+        userId: Number(userId),
+        block_opposite_gender: next,
+      });
+    } catch (e) {
+      console.error(e.response?.data || e.message);
+      setBlockOpposite(prev);
+      alert(e.response?.data?.message || 'Could not save setting. Try again.');
+    } finally {
+      setSavingBlockOG(false);
+    }
+  };
 
   if (!allowed) {
     return (
@@ -92,6 +195,13 @@ export default function Setting() {
             title="Change Password"
             subtitle="Change your password"
             onClick={() => navigate('/settings/change-password')}
+          />
+          <SettingsToggleRow
+            title="Block Opposite Gender"
+            subtitle="Hide posts, messages and reminders from the other gender"
+            checked={blockOpposite}
+            disabled={savingBlockOG}
+            onToggle={toggleBlockOpposite}
           />
         </div>
       </div>

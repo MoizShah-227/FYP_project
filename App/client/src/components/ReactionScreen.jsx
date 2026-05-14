@@ -3,9 +3,21 @@ import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "./Navbar";
 import api from "../../config/axiosConfig.js";
 import EmojiConvertor from "emoji-js";
+import admin from "../assets/admin.png";
 
 const emoji = new EmojiConvertor();
 emoji.replace_mode = "unified";
+
+const API_ORIGIN = "http://localhost:5004";
+
+/** Resolves: full URL | '/uploads/...' | 'profile/x.jpg' | 'x.jpg' → absolute URL. */
+function resolveUserImage(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return "";
+  if (/^https?:\/\//i.test(s)) return s;
+  if (s.startsWith("/")) return `${API_ORIGIN}${s}`;
+  return `${API_ORIGIN}/uploads/${s.replace(/^uploads\//i, "")}`;
+}
 
 function renderEmoji(shortcode) {
   if (typeof shortcode !== "string" || !shortcode.trim()) return "";
@@ -196,6 +208,7 @@ function ReactionsScreen() {
           ) : (
             filteredRows.map((item, i) => {
               const emojiChar = renderEmoji(item.emoji);
+              const avatarUrl = resolveUserImage(item.image);
               return (
                 <div
                   key={`${item.u_id}-${item.E_id}-${i}`}
@@ -208,9 +221,9 @@ function ReactionsScreen() {
                   }}
                 >
                   <div style={{ position: "relative", flexShrink: 0 }}>
-                    {item.image ? (
+                    {avatarUrl ? (
                       <img
-                        src={item.image}
+                        src={avatarUrl}
                         alt={item.name}
                         style={{
                           width: "48px",
@@ -218,6 +231,13 @@ function ReactionsScreen() {
                           borderRadius: "50%",
                           objectFit: "cover",
                           border: "1px solid #eee",
+                          display: "block",
+                        }}
+                        onError={(e) => {
+                          if (e.currentTarget.src !== admin) {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = admin;
+                          }
                         }}
                       />
                     ) : (

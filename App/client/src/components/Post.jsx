@@ -118,8 +118,22 @@ const PostCard = ({ id, name, time, content, avatar, postImage, reactionUserCoun
 const FEED_POLL_MS = 30_000;
 
 function WishoraFeed() {
+  const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('user');
+      const u = raw ? JSON.parse(raw) : null;
+      const role = String(u?.type || '').toLowerCase();
+      if (role === 'student') {
+        navigate('/profile', { replace: true });
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [navigate]);
 
   useEffect(() => {
     let cancelled = false;

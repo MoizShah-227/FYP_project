@@ -3,8 +3,18 @@ import { ArrowLeft, Search, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
 import api from '../../config/axiosConfig';
+import admin from '../assets/admin.png';
 
-const API_UPLOAD = 'http://localhost:5004/uploads';
+const API_ORIGIN = 'http://localhost:5004';
+
+/** Resolves any of: full URL | '/uploads/...' | 'profile/x.jpg' | 'x.jpg' → absolute URL. */
+function resolveUserImage(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  if (/^https?:\/\//i.test(s)) return s;
+  if (s.startsWith('/')) return `${API_ORIGIN}${s}`;
+  return `${API_ORIGIN}/uploads/${s.replace(/^uploads\//i, '')}`;
+}
 
 function FavouriteTeachers() {
   const navigate = useNavigate();
@@ -238,11 +248,9 @@ function FavouriteTeachers() {
                   marginBottom: '2px',
                 }}
               >
-                <div className="d-flex align-items-center gap-2" style={{ flex: 1 }}>
+                <div className="d-flex align-items-center gap-2" style={{ flex: 1, minWidth: 0 }}>
                   <img
-                    src={
-                      row.image ? `${API_UPLOAD}/${row.image}` : '/default-avatar.png'
-                    }
+                    src={resolveUserImage(row.image) || admin}
                     alt={row.name}
                     style={{
                       width: '34px',
@@ -250,9 +258,16 @@ function FavouriteTeachers() {
                       borderRadius: '50%',
                       objectFit: 'cover',
                       border: '1px solid #ccc',
+                      flexShrink: 0,
+                    }}
+                    onError={(e) => {
+                      if (e.currentTarget.src !== admin) {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = admin;
+                      }
                     }}
                   />
-                  <span style={{ fontSize: '13px', color: '#222', fontWeight: '500' }}>
+                  <span className="text-truncate" style={{ fontSize: '13px', color: '#222', fontWeight: '500', minWidth: 0 }}>
                     {row.name}
                   </span>
                 </div>

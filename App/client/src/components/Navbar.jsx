@@ -12,6 +12,8 @@ function Navbar() {
     return user?.type === "Teacher";
   });
   const user = JSON.parse(localStorage.getItem("user"));
+  const isStudent = String(user?.type || "").toLowerCase() === "student";
+  const homeTarget = isStudent ? '/profile' : '/feed';
   // console.log(user.type=="Admin");
 return (
     <nav 
@@ -28,7 +30,11 @@ return (
         onClose={() => setIsModalOpen(false)} 
       />
 
-      <div className="d-flex align-items-center" onClick={() => navigate('/feed')} style={{cursor: 'pointer'}}>
+      <div
+        className="d-flex align-items-center"
+        onClick={() => navigate(homeTarget)}
+        style={{ cursor: 'pointer' }}
+      >
         <div style={{ width: '4px', height: '30px', backgroundColor: '#007bff', marginRight: '15px' }}></div>
         <h2 className="m-0 fw-bold" style={{ color: '#07333d', letterSpacing: '-0.5px', fontSize: '1.8rem' }}>
           Wishora
@@ -36,9 +42,15 @@ return (
       </div>
 
       <div className="d-flex align-items-center gap-4 text-dark">
-        <button onClick={() => navigate('/feed')} className="btn p-1 border-0 bg-transparent nav-icon-hover">
-          <Home size={28} strokeWidth={1.5} color="#333" />
-        </button>
+        {!isStudent && (
+          <button
+            onClick={() => navigate('/feed')}
+            className="btn p-1 border-0 bg-transparent nav-icon-hover"
+            aria-label="Home"
+          >
+            <Home size={28} strokeWidth={1.5} color="#333" />
+          </button>
+        )}
         
         {checkUser&&(
           <button onClick={() => setIsModalOpen(true)} className="btn p-1 border-0 bg-transparent nav-icon-hover">  

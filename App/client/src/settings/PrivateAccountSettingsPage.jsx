@@ -166,6 +166,16 @@ export default function PrivateAccountSettingsPage() {
   };
 
   const uploadsBase = `${String(api.defaults.baseURL || '').replace(/\/$/, '')}/uploads`;
+  const apiOrigin = String(api.defaults.baseURL || '').replace(/\/$/, '');
+
+  /** Resolves any of: full URL | '/uploads/...' | 'profile/x.jpg' | 'x.jpg' → absolute URL. */
+  function resolveUserImage(raw) {
+    const t = String(raw || '').trim();
+    if (!t) return '';
+    if (/^https?:\/\//i.test(t)) return t;
+    if (t.startsWith('/')) return `${apiOrigin}${t}`;
+    return `${uploadsBase}/${t.replace(/^uploads\//i, '')}`;
+  }
 
   if (!ready) {
     return (
@@ -269,10 +279,16 @@ export default function PrivateAccountSettingsPage() {
                       style={{ backgroundColor: '#f0f2f5' }}
                     >
                       <img
-                        src={s.image ? `${uploadsBase}/${s.image}` : '/default-avatar.png'}
+                        src={resolveUserImage(s.image) || '/default-avatar.png'}
                         alt=""
-                        className="rounded-circle"
+                        className="rounded-circle flex-shrink-0"
                         style={{ width: 40, height: 40, objectFit: 'cover' }}
+                        onError={(e) => {
+                          if (!e.currentTarget.src.endsWith('/default-avatar.png')) {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = '/default-avatar.png';
+                          }
+                        }}
                       />
                       <span className="flex-grow-1 fw-semibold small" style={{ color: '#222' }}>
                         {s.name}
