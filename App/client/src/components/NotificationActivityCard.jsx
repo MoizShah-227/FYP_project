@@ -4,6 +4,17 @@ import api from '../../config/axiosConfig.js';
 import admin from '../assets/admin.png';
 import RecommendedEmojiPicker from './RecommendedEmojiPicker';
 
+const API_ORIGIN = 'http://localhost:5004';
+
+/** Resolve any of: full URL | '/uploads/...' | 'profile/xyz.jpg' | 'xyz.jpg' → absolute URL. */
+function resolveUserImage(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  if (/^https?:\/\//i.test(s)) return s;
+  if (s.startsWith('/')) return `${API_ORIGIN}${s}`;
+  return `${API_ORIGIN}/uploads/${s.replace(/^uploads\//i, '')}`;
+}
+
 const emojiStore = new EmojiConvertor();
 emojiStore.colons_mode = true;
 
@@ -456,7 +467,7 @@ const NotificationActivityCard = ({ item, onDismiss, onChanged }) => {
             ? `Public announcement — ${item.author_name || 'Someone'}`
             : 'Update';
 
-  const avatar = item.author_image || admin;
+  const avatar = resolveUserImage(item.author_image) || admin;
 
   return (
     <>

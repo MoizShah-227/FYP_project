@@ -120,7 +120,12 @@ if (!isOpen) return null;
                 opacity: selected.length === 0 ? 0.6 : 1,
               }}
               disabled={selected.length === 0}
-              onClick={() => onNext(selected)}
+              onClick={() => {
+                const names = courses
+                  .filter((c) => selected.includes(c.C_id))
+                  .map((c) => c.name);
+                onNext(selected, names);
+              }}
             >
               Next
             </button>

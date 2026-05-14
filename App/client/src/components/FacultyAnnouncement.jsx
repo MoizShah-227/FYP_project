@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { X, User, ArrowLeft, Plus } from 'lucide-react';
+import React, { useMemo, useRef, useState } from 'react';
+import { X, User, ArrowLeft, Plus, ImagePlus } from 'lucide-react';
 import api from '../../config/axiosConfig.js';
 import MentionTextarea from './MentionTextarea';
 
@@ -10,6 +10,9 @@ const FacultyAnnouncement = ({ isOpen, onClose, onBack }) => {
   const [taggedAuthorIds, setTaggedAuthorIds] = useState([]);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const fileInputRef = useRef(null);
 
   const user = useMemo(() => {
     try {
@@ -23,6 +26,22 @@ const FacultyAnnouncement = ({ isOpen, onClose, onBack }) => {
   const actingUserId = user?.id ?? user?.u_id;
 
   if (!isOpen) return null;
+
+  const handlePickImage = (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    if (!f.type.startsWith('image/')) return alert('Please pick an image file.');
+    if (f.size > 5 * 1024 * 1024) return alert('Image must be 5 MB or smaller.');
+    setImageFile(f);
+    setImagePreview(URL.createObjectURL(f));
+  };
+
+  const clearImage = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImageFile(null);
+    setImagePreview('');
+  };
 
   const handlePost = async () => {
     if (!message.trim()) {
@@ -51,17 +70,19 @@ const FacultyAnnouncement = ({ isOpen, onClose, onBack }) => {
     try {
       for (let i = 0; i < authorIds.length; i++) {
         const created_by = authorIds[i];
-        const payload = {
-          message,
-          image: '',
-          type: 'faculty',
-          created_at: new Date().toISOString(),
-          created_by,
-          emailChecked: sendEmail && i === 0,
-          ...availability,
-        };
+        const form = new FormData();
+        form.append('message', message);
+        form.append('type', 'faculty');
+        form.append('created_at', new Date().toISOString());
+        form.append('created_by', String(created_by));
+        form.append('emailChecked', String(sendEmail && i === 0));
+        if (availability.from_date) form.append('from_date', availability.from_date);
+        if (availability.to_date) form.append('to_date', availability.to_date);
+        if (imageFile) form.append('image', imageFile);
 
-        await api.post('/admin/facultyannoucement', payload);
+        await api.post('/admin/facultyannoucement', form, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
       }
 
       alert(authorIds.length > 1 ? `Posted ${authorIds.length} faculty announcements.` : 'Announcement posted successfully!');
@@ -70,6 +91,7 @@ const FacultyAnnouncement = ({ isOpen, onClose, onBack }) => {
       setFromDate('');
       setToDate('');
       setSendEmail(true);
+      clearImage();
       onClose();
     } catch (error) {
       console.error('Failed to post announcement:', error.response?.data || error.message);
@@ -133,10 +155,56 @@ const FacultyAnnouncement = ({ isOpen, onClose, onBack }) => {
             className="form-control border shadow-sm"
             style={{ borderRadius: '12px', resize: 'none', fontSize: '0.9rem' }}
           />
-          <div className="position-absolute start-0 bottom-0 m-3 text-muted pointer-events-none">
-            <Plus size={20} />
-          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handlePickImage}
+          />
+          <button
+            type="button"
+            className="position-absolute start-0 bottom-0 m-2 btn btn-sm border-0 p-0 d-flex align-items-center justify-content-center rounded-circle"
+            style={{ width: 32, height: 32, background: '#f0f0f0' }}
+            onClick={() => fileInputRef.current?.click()}
+            title="Attach image"
+            disabled={loading}
+          >
+            {imagePreview ? <ImagePlus size={16} color="#2d8a4e" /> : <Plus size={18} color="#666" />}
+          </button>
         </div>
+
+        {imagePreview ? (
+          <div className="mb-3 position-relative d-inline-block">
+            <img
+              src={imagePreview}
+              alt="preview"
+              style={{
+                maxHeight: 140,
+                maxWidth: '100%',
+                borderRadius: 10,
+                border: '1px solid #eee',
+                objectFit: 'cover',
+              }}
+            />
+            <button
+              type="button"
+              className="btn btn-sm position-absolute top-0 end-0 border-0 d-flex align-items-center justify-content-center rounded-circle"
+              style={{
+                width: 24,
+                height: 24,
+                background: 'rgba(0,0,0,0.55)',
+                color: '#fff',
+                transform: 'translate(35%, -35%)',
+              }}
+              onClick={clearImage}
+              disabled={loading}
+              title="Remove image"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : null}
 
         <div className="mb-3">
           <label className="small fw-bold mb-2 d-block">Visible between (optional)</label>

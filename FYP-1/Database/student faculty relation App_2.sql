@@ -368,4 +368,5 @@ SET
     name = 'Noor ul Ain',
     image = 'Noor.jpeg'
 WHERE u_id = 12
-sle
+
+select * from Users

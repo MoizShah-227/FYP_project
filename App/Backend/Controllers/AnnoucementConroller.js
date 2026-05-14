@@ -1,5 +1,14 @@
 import { sql, poolPromise } from "../Config/DB.js";
 import {sendAnnouncementEmail} from  '../Lib/Mailer.js'
+import { announcementImageRelPath } from "../Middleware/upload.js";
+
+/** When multer is used, image filename is on req.file; else fall back to body */
+const pickAnnouncementImage = (req) => {
+  if (req.file?.filename) return announcementImageRelPath(req.file.filename);
+  const v = req.body?.image;
+  if (typeof v === "string" && v.trim()) return v.trim().slice(0, 500);
+  return null;
+};
 
 /** Parse optional body date (YYYY-MM-DD or ISO); null if empty / invalid */
 const parseBodyDate = (v) => {
@@ -15,7 +24,8 @@ const parseCreatedBy = (v) => {
 };
 
 export const PublicAnnoucement = async (req, res) => {
-    const { message, image, type, created_at, created_by, from_date, to_date } = req.body;
+    const { message, type, created_at, created_by, from_date, to_date } = req.body;
+    const image = pickAnnouncementImage(req);
     const creatorId = parseCreatedBy(created_by);
     if (creatorId == null) {
         return res.status(400).json({ message: "created_by must be a valid user id" });
@@ -52,7 +62,9 @@ export const PublicAnnoucement = async (req, res) => {
   };
   
 export const FacultyAnnoucement=async (req,res)=>{
-    const { message, image, type, created_at, created_by, emailChecked, from_date, to_date } = req.body;
+    const { message, type, created_at, created_by, emailChecked, from_date, to_date } = req.body;
+    const image = pickAnnouncementImage(req);
+    const emailFlag = emailChecked === true || emailChecked === "true" || emailChecked === 1 || emailChecked === "1";
     const creatorId = parseCreatedBy(created_by);
     if (creatorId == null) {
         return res.status(400).json({ message: "created_by must be a valid user id" });
@@ -63,7 +75,7 @@ export const FacultyAnnoucement=async (req,res)=>{
         return res.status(400).json({ message: "from_date must be on or before to_date" });
     }
     let emails =[];
-    if(emailChecked){
+    if(emailFlag){
         try{
             const pool = await poolPromise;
             const result = await pool.request().query("select email from users where user_type='teacher'")

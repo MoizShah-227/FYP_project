@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react'; // ✅ add useEffect
-import { X, BookOpen, GraduationCap } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, BookOpen, GraduationCap, Star, Award } from 'lucide-react';
 import CourseModal from './CourseModel';
+import CourseMessageModal from './CourseMessageModal';
 import SemesterModal from './SemesterModal';
 import SectionModal from './SectionModel';
 import SemesterSectionMessageModal from './SemesterSectionMessageModal';
@@ -9,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 const options = [
   { id: 'course',     label: 'Course',            sub: 'Send to specific course',       Icon: BookOpen,      bg: '#eef3ff', color: '#4361ee' },
   { id: 'semester',   label: 'Semester',           sub: 'Send by department & semester', Icon: GraduationCap, bg: '#f0f7ee', color: '#2d8a4e' },
-  // { id: 'favourites', label: 'Favourite Students', sub: 'Your favourite students',       Icon: Star,          bg: '#fffbea', color: '#e6a817' },
+  { id: 'favourites', label: 'Favourite Students', sub: 'Your favourite students',       Icon: Star,          bg: '#fffbea', color: '#e6a817' },
   // { id: 'alumni',     label: 'Alumni',             sub: 'Past students',                 Icon: Award,         bg: '#fef0f0', color: '#e05c5c' },
 ];
 
@@ -17,6 +18,8 @@ const CreatePostModal = ({ isOpen, onClose, teacherId }) => {
   const [selected, setSelected] = useState(null);
   const [selectedSemesters, setSelectedSemesters] = useState({});
   const [selectedSections, setSelectedSections] = useState([]);
+  const [selectedCourseIds, setSelectedCourseIds] = useState([]);
+  const [selectedCourseNames, setSelectedCourseNames] = useState([]);
   const navigate = useNavigate();
   const me = (() => {
     try {
@@ -27,28 +30,32 @@ const CreatePostModal = ({ isOpen, onClose, teacherId }) => {
     }
   })();
 
-  // ✅ navigate inside useEffect, never during render
-  useEffect(() => {
-    if (selected === 'favourites') {
-      onClose();
-      navigate('/favourite-students');
-    }
-    if (selected === 'alumni') {
-      onClose();
-      navigate('/alumni');
-    }
-  }, [selected]);
-
   if (!isOpen) return null;
 
   const handleClose = () => {
     setSelected(null);
     setSelectedSemesters({});
     setSelectedSections([]);
+    setSelectedCourseIds([]);
+    setSelectedCourseNames([]);
     onClose();
   };
 
   const goBack = () => setSelected(null);
+
+  const handlePick = (id) => {
+    if (id === 'favourites') {
+      handleClose();
+      navigate('/favourite-students');
+      return;
+    }
+    if (id === 'alumni') {
+      handleClose();
+      navigate('/alumni');
+      return;
+    }
+    setSelected(id);
+  };
 
   if (selected === 'course') {
     return (
@@ -57,10 +64,24 @@ const CreatePostModal = ({ isOpen, onClose, teacherId }) => {
         onClose={handleClose}
         onBack={goBack}
         teacherId={teacherId}
-        onNext={(courseIds) => {
-          console.log('Selected courses:', courseIds);
-          handleClose();
+        onNext={(courseIds, courseNames) => {
+          setSelectedCourseIds(Array.isArray(courseIds) ? courseIds : []);
+          setSelectedCourseNames(Array.isArray(courseNames) ? courseNames : []);
+          setSelected('course-message');
         }}
+      />
+    );
+  }
+
+  if (selected === 'course-message') {
+    return (
+      <CourseMessageModal
+        isOpen={isOpen}
+        onClose={handleClose}
+        onBack={() => setSelected('course')}
+        teacherId={me}
+        selectedCourseIds={selectedCourseIds}
+        selectedCourseNames={selectedCourseNames}
       />
     );
   }
@@ -108,9 +129,6 @@ const CreatePostModal = ({ isOpen, onClose, teacherId }) => {
     );
   }
 
-  // ✅ return null while useEffect runs for favourites/alumni
-  if (selected === 'favourites' || selected === 'alumni') return null;
-
   return (
     <div
       className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
@@ -145,6 +163,7 @@ const CreatePostModal = ({ isOpen, onClose, teacherId }) => {
           </p>
 
           <div className="d-flex flex-column gap-2">
+            {/* eslint-disable-next-line no-unused-vars */}
             {options.map(({ id, label, sub, Icon, bg, color }) => (
               <div
                 key={id}
@@ -154,7 +173,7 @@ const CreatePostModal = ({ isOpen, onClose, teacherId }) => {
                   background: selected === id ? '#fafafa' : '#fff',
                   transition: 'background 0.15s',
                 }}
-                onClick={() => setSelected(id)}
+                onClick={() => handlePick(id)}
               >
                 <div style={{
                   width: 42, height: 42, borderRadius: 10, background: bg,

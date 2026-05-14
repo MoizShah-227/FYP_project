@@ -4,21 +4,34 @@ import Navbar from "./Navbar";
 import admin from "../assets/admin.png";
 import api from "../../config/axiosConfig.js";
 
-/** Static preview emojis — whole row opens reaction detail */
 const REACTION_PREVIEW_EMOJIS = ["👍", "❤️"];
 
-const PostCard = ({ id, name, time, content, avatar, reactionUserCount: initialReactionUserCount = 0 }) => {
+const API_ORIGIN = "http://localhost:5004";
+
+/** Resolves: full URL | '/uploads/...' | 'profile/x.jpg' | 'x.jpg' → absolute URL. */
+function resolveUserImage(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return "";
+  if (/^https?:\/\//i.test(s)) return s;
+  if (s.startsWith("/")) return `${API_ORIGIN}${s}`;
+  return `${API_ORIGIN}/uploads/${s.replace(/^uploads\//i, "")}`;
+}
+
+const PostCard = ({ id, name, time, content, avatar, postImage, reactionUserCount = 0 }) => {
   const navigate = useNavigate();
 
-  const reactionUserCount =
-    typeof initialReactionUserCount === "number" && !Number.isNaN(initialReactionUserCount)
-      ? initialReactionUserCount
+  const safeReactionCount =
+    typeof reactionUserCount === "number" && !Number.isNaN(reactionUserCount)
+      ? reactionUserCount
       : 0;
 
   const handleOpenReactions = (e) => {
     e.stopPropagation();
     navigate("/reactions", { state: { postId: id } });
   };
+
+  const avatarUrl = resolveUserImage(avatar) || admin;
+  const postImageUrl = resolveUserImage(postImage);
 
   return (
     <div
@@ -28,14 +41,20 @@ const PostCard = ({ id, name, time, content, avatar, reactionUserCount: initialR
       <div className="card-body p-4">
         <div className="d-flex align-items-center mb-3">
           <img
-            src={avatar}
-            alt="profile"
+            src={avatarUrl}
+            alt={`${name || "User"}'s profile`}
             className="rounded-circle me-3"
             style={{
               width: "50px",
               height: "50px",
               objectFit: "cover",
               border: "1px solid #eee",
+            }}
+            onError={(e) => {
+              if (e.currentTarget.src !== admin) {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = admin;
+              }
             }}
           />
           <div>
@@ -48,6 +67,23 @@ const PostCard = ({ id, name, time, content, avatar, reactionUserCount: initialR
         <p style={{ fontSize: "0.95rem", color: "#444", lineHeight: "1.5" }}>
           {content}
         </p>
+        {postImageUrl ? (
+          <img
+            src={postImageUrl}
+            alt="post attachment"
+            className="w-100 mt-2"
+            style={{
+              maxHeight: 360,
+              objectFit: "cover",
+              borderRadius: 12,
+              border: "1px solid #eee",
+            }}
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.style.display = "none";
+            }}
+          />
+        ) : null}
       </div>
 
       <div className="card-footer bg-white border-top-0 px-4 pb-3">
@@ -71,7 +107,7 @@ const PostCard = ({ id, name, time, content, avatar, reactionUserCount: initialR
               </span>
             ))}
           </span>
-          <span>{reactionUserCount}</span>
+          <span>{safeReactionCount}</span>
         </button>
       </div>
     </div>
@@ -113,6 +149,7 @@ function WishoraFeed() {
             name: post.name,
             time: post.time,
             avatar: post.avatar || admin,
+            postImage: post.postImage || null,
             content: post.content,
             reactionUserCount: post.reactionUserCount ?? 0,
           }))

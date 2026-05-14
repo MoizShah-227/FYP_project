@@ -5,6 +5,6 @@ const router = express.Router();
 
 // routes
 router.get("/show-courses", ShowCourses);
-router.get("/send-courses", sendMessageToCourse);
+router.post("/send-courses", sendMessageToCourse);
 
 export default router;

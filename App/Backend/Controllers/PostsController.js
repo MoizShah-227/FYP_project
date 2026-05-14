@@ -14,7 +14,8 @@ const mapAnnouncementRows = (rows) =>
         id: row.A_id,
         name: row.name,
         time: row.created_at ? new Date(row.created_at).toLocaleString() : "",
-        avatar: row.image || null,
+        avatar: row.author_image || null,
+        postImage: row.post_image || null,
         content: row.message,
         reactionUserCount: Number(row.reaction_user_count) || 0,
     }));
@@ -28,7 +29,10 @@ const reactionUserCountSql = `(SELECT COUNT(DISTINCT ar.user_id)
                         WHERE ub.user_id = a.created_by AND ub.blocked_user_id = ar.user_id
                       ))`;
 
-const announcementSelect = `SELECT a.A_id, u.image, u.name, a.created_at, a.message,
+const announcementSelect = `SELECT a.A_id,
+                    u.image AS author_image,
+                    a.image AS post_image,
+                    u.name, a.created_at, a.message,
                     ${reactionUserCountSql} AS reaction_user_count
                     FROM Announcements a 
                     JOIN Users u ON u.u_id = a.created_by`;
