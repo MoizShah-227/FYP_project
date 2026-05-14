@@ -10,6 +10,7 @@ import Education from "./Routes/EducationRoute.js"
 import ShowTeacherModelRoutes from "./Routes/showTeacherModelRoutes.js"
 import EventRoute from "./Routes/EventRoute.js"
 import SettingsRoute from "./Routes/SettingsRoute.js"
+import EmojiRecommendationRoute from "./Routes/EmojiRecommendationRoute.js"
 import session from "express-session";
 
 const app = express();
@@ -43,6 +44,7 @@ app.use('/posts',PostsRoute)
 app.use('/message',MessageRoute)
 app.use('/event',EventRoute)
 app.use('/settings', SettingsRoute)
+app.use('/emoji', EmojiRecommendationRoute)
 app.use('/education',Education)
 app.use('/showTeacherModel',ShowTeacherModelRoutes)
 app.use("/uploads", express.static("uploads"));

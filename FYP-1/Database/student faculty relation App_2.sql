@@ -278,3 +278,94 @@ BEGIN
   CREATE INDEX IX_Messages_sender_event ON dbo.Messages(sender_id, event_id);
 END
 GO
+
+
+select * from Emojis
+
+
+
+-- =====================================================
+-- STEP 1: Emojis table mein keywords column add karo
+-- =====================================================
+ 
+ALTER TABLE Emojis
+ADD keywords VARCHAR(300) NULL;
+ 
+-- =====================================================
+-- STEP 2: Har emoji ke liye keywords update karo
+-- (Apne actual emojis ke mutabiq update karo)
+-- =====================================================
+ 
+-- Happy / Love emojis
+-- =====================================================
+-- STEP 3: Index banao searching ke liye (optional)
+-- =====================================================
+ 
+CREATE INDEX IX_Emojis_keywords ON Emojis(keywords);
+CREATE INDEX IX_Emojis_isEnable  ON Emojis(isEnable);
+ 
+-- =====================================================
+-- STEP 4: Check karo
+-- =====================================================
+ select * from Emojis
+
+SELECT E_id, emoji, keywords, isEnable
+FROM Emojis
+
+ORDER BY E_id;
+
+
+
+
+select * from users
+UPDATE users
+SET 
+    name = CASE 
+        WHEN u_id = 4  THEN 'Nadia Arif'
+
+        WHEN u_id = 5  THEN 'Hussnain Qureshi'
+        WHEN u_id = 6  THEN 'Beenish Abbasi'
+        WHEN u_id = 7  THEN 'Muhammad Qasim'
+        WHEN u_id = 8  THEN 'Muhammad Faisal'
+        WHEN u_id = 9  THEN 'Saeed Watto'
+        WHEN u_id = 10 THEN 'Samia Noor'
+        WHEN u_id = 11 THEN 'Nadeem'
+        WHEN u_id = 12 THEN 'Summaiya Islam'
+        WHEN u_id = 13 THEN 'Abid Ali'
+        WHEN u_id = 14 THEN 'Aleena Wahid'
+        WHEN u_id = 15 THEN 'Shahid Jameel'
+        WHEN u_id = 16 THEN 'Sara Arooj'
+        WHEN u_id = 17 THEN 'Sohaib Mughal'
+        WHEN u_id = 18 THEN 'Anum Noor'
+        WHEN u_id = 19 THEN 'Zeeshan Muzaffar'
+        WHEN u_id = 20 THEN 'Raja Fahad'
+        ELSE name 
+    END,
+    image = CASE 
+        WHEN u_id = 4  THEN 'Nadia.hpeg'
+        WHEN u_id = 5  THEN 'Hussnain.jpeg'
+        WHEN u_id = 6  THEN 'Beenish.jpeg'
+        WHEN u_id = 7  THEN 'Qasim.jpeg'
+        WHEN u_id = 8  THEN 'Faisal.jpeg'
+        WHEN u_id = 9  THEN 'saeed.jpeg'
+        WHEN u_id = 10 THEN 'samia.jpeg'
+        WHEN u_id = 11 THEN 'Nadeem.jpeg'
+        WHEN u_id = 12 THEN 'summaiya.jpeg'
+        WHEN u_id = 13 THEN 'Abid.jpeg'
+        WHEN u_id = 14 THEN 'Aleena.jpeg'
+        WHEN u_id = 15 THEN 'shahid.jpeg'
+        WHEN u_id = 16 THEN 'sara.jpeg'
+        WHEN u_id = 17 THEN 'sohaib.jpeg'
+        WHEN u_id = 18 THEN 'Anum.jpeg'
+        WHEN u_id = 19 THEN 'zeeshan.jpeg'
+        WHEN u_id = 20 THEN 'Fahad.jpeg'
+        ELSE image 
+    END
+WHERE u_id BETWEEN 4 AND 20;
+
+UPDATE users 
+SET 
+    name = 'Noor ul Ain',
+    image = 'Noor.jpeg'
+WHERE u_id = 12
+sle

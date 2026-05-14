@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import EmojiConvertor from 'emoji-js';
+import RecommendedEmojiPicker from './RecommendedEmojiPicker';
 import api from '../../config/axiosConfig.js';
 
 /** Persist emoji the same way as the rest of the app: `:shortcode:` in DB */
@@ -14,6 +15,7 @@ function unifiedToColonShortcodes(str) {
 const EMOJIS = ['❤️', '🍓', '🧁', '🎂', '🍪', '🎁', '🎊', '🎈', '🎆', '✨'];
 
 const WishModal = ({ name, onClose, onSend }) => {
+  const suggestionText = `Happy birthday ${name || ''}`.trim();
   const [selectedEmojis, setSelectedEmojis] = useState(new Set());
   const [submitting, setSubmitting] = useState(false);
 
@@ -69,8 +71,18 @@ const WishModal = ({ name, onClose, onSend }) => {
           </button>
         </div>
 
+        <div className="mt-3">
+          <RecommendedEmojiPicker
+            text={suggestionText}
+            selected={selectedEmojis}
+            submitting={submitting}
+            onPick={(_row, glyph) => glyph && toggleEmoji(glyph)}
+            emptyText="Suggested for this birthday — tap to pick"
+          />
+        </div>
+
         <div
-          className="mt-3"
+          className="mt-1"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(5, 1fr)',

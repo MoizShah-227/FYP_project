@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import EmojiConvertor from 'emoji-js';
 import api from '../../config/axiosConfig.js';
 import admin from '../assets/admin.png';
+import RecommendedEmojiPicker from './RecommendedEmojiPicker';
 
 const emojiStore = new EmojiConvertor();
 emojiStore.colons_mode = true;
@@ -225,6 +226,15 @@ function TodayEventWishCard({ event, favourites, currentUserId, onCompleted }) {
         }}
       >
         <span className="small fw-semibold text-muted d-block mb-2">Choose your emoji</span>
+
+        <RecommendedEmojiPicker
+          text={[event?.event_name, event?.description].filter(Boolean).join(' ')}
+          selected={emojiPick}
+          submitting={submitting}
+          onPick={(_row, glyph) => glyph && toggleEm(glyph)}
+          emptyText="Suggested for this event — tap to pick"
+        />
+
         <div
           style={{
             display: 'grid',

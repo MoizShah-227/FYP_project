@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import EmojiConvertor from 'emoji-js';
 import api from '../../config/axiosConfig.js';
 import admin from '../assets/admin.png';
+import RecommendedEmojiPicker from './RecommendedEmojiPicker';
 
 const emojiStore = new EmojiConvertor();
 emojiStore.colons_mode = true;
@@ -35,7 +36,13 @@ const renderEmojiGlyph = (shortcode) => {
   return out === shortcode && /^:[a-z0-9_+-]+:$/i.test(shortcode.trim()) ? '·' : out;
 };
 
-function PostEmojiReactions({ announcementId, onReacted, feedAlreadyReacted, feedReactionEmoji }) {
+function PostEmojiReactions({
+  announcementId,
+  contextText = '',
+  onReacted,
+  feedAlreadyReacted,
+  feedReactionEmoji,
+}) {
   const [loading, setLoading] = useState(true);
   const [choices, setChoices] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -102,6 +109,24 @@ function PostEmojiReactions({ announcementId, onReacted, feedAlreadyReacted, fee
         }
       }
 
+      const text = String(contextText || '').trim();
+      if (text.length >= 2) {
+        try {
+          const recRes = await api.post('/emoji/recommend', { text });
+          if (!cancelled) {
+            const list = Array.isArray(recRes.data?.emojis) ? recRes.data.emojis : [];
+            const mapped = list.slice(0, 5).map((r) => ({ E_id: r.id, emoji: r.emoji }));
+            if (mapped.length > 0) {
+              setChoices(mapped);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('emoji/recommend failed, falling back:', e.response?.data || e.message);
+        }
+      }
+
       try {
         const emojisRes = await api.get('/admin/emojis', { withCredentials: true });
         if (cancelled) return;
@@ -121,7 +146,7 @@ function PostEmojiReactions({ announcementId, onReacted, feedAlreadyReacted, fee
     return () => {
       cancelled = true;
     };
-  }, [announcementId, feedAlreadyReacted]);
+  }, [announcementId, feedAlreadyReacted, contextText]);
 
   const sendReaction = async () => {
     const row = choices.find((r) => Number(r.E_id) === Number(selectedId));
@@ -256,7 +281,7 @@ function PostEmojiReactions({ announcementId, onReacted, feedAlreadyReacted, fee
   );
 }
 
-function EventMessageModal({ authorName, receiverId, onClose, onSent }) {
+function EventMessageModal({ authorName, receiverId, contextText = '', onClose, onSent }) {
   const [selectedEmojis, setSelectedEmojis] = useState(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState(null);
@@ -339,8 +364,19 @@ function EventMessageModal({ authorName, receiverId, onClose, onSent }) {
           </button>
         </div>
         {err ? <p className="small text-danger mt-2 mb-0">{err}</p> : null}
+
+        <div className="mt-3">
+          <RecommendedEmojiPicker
+            text={contextText}
+            selected={selectedEmojis}
+            submitting={submitting}
+            onPick={(_row, glyph) => glyph && toggleEmoji(glyph)}
+            emptyText="Suggested for this post — tap to pick"
+          />
+        </div>
+
         <div
-          className="mt-3"
+          className="mt-1"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(5, 1fr)',
@@ -462,6 +498,7 @@ const NotificationActivityCard = ({ item, onDismiss, onChanged }) => {
               ) : null}
               <PostEmojiReactions
                 announcementId={item.announcement_id}
+                contextText={typeof item.message === 'string' ? item.message : ''}
                 feedAlreadyReacted={!!item.viewer_has_reacted}
                 feedReactionEmoji={item.viewer_reaction_emoji}
                 onReacted={() => onChanged?.()}
@@ -523,6 +560,7 @@ const NotificationActivityCard = ({ item, onDismiss, onChanged }) => {
         <EventMessageModal
           authorName={item.author_name || 'organizer'}
           receiverId={item.author_id}
+          contextText={[item.message, item.author_name].filter(Boolean).join(' ')}
           onClose={() => setEventOpen(false)}
           onSent={() => {
             setSentAck(true);
