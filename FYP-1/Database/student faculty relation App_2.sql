@@ -342,7 +342,7 @@ SET
         ELSE name 
     END,
     image = CASE 
-        WHEN u_id = 4  THEN 'Nadia.hpeg'
+        WHEN u_id = 4  THEN 'Nadia.peg'
         WHEN u_id = 5  THEN 'Hussnain.jpeg'
         WHEN u_id = 6  THEN 'Beenish.jpeg'
         WHEN u_id = 7  THEN 'Qasim.jpeg'
@@ -364,9 +364,12 @@ SET
 WHERE u_id BETWEEN 4 AND 20;
 
 UPDATE users 
-SET 
-    name = 'Noor ul Ain',
-    image = 'Noor.jpeg'
-WHERE u_id = 12
+SET image = 'nadia.jpeg' WHERE u_id =4 
 
 select * from Users
+
+select * from Announcements
+
+UPDATE Users
+SET dob = CAST(GETDATE() AS DATE)
+WHERE u_id = 4;
