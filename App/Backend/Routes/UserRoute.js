@@ -22,8 +22,11 @@ import {
   RemoveFavourite,
   UnblockUser,
 } from '../Controllers/UserController.js';
+import blockOppositeGenderRoutes from './BlockOppositeGenderRoute.js';
 
 const router = express.Router();
+
+router.use(blockOppositeGenderRoutes);
 
 // User routes
 router.post("/login", login);

@@ -27,7 +27,8 @@ export const login = async (req, res) => {
       regno: user.reg_no,
       name: user.name,
       image: user.image,
-      type: user.user_type
+      type: user.user_type,
+      gender: user.gender ?? null,
     };
     res.json({
       message: "Login successful",

@@ -100,14 +100,23 @@ function SettingsToggleRow({ title, subtitle, checked, disabled, onToggle }) {
   );
 }
 
-function getUserId() {
+function getSessionUser() {
   try {
     const raw = localStorage.getItem('user');
-    const u = raw ? JSON.parse(raw) : null;
-    return u?.id ?? u?.u_id ?? null;
+    return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
+}
+
+function getUserId() {
+  const u = getSessionUser();
+  return u?.id ?? u?.u_id ?? null;
+}
+
+function getUserGender() {
+  const u = getSessionUser();
+  return u?.gender ?? null;
 }
 
 /** Teachers only — hub links to dedicated settings routes */
@@ -145,6 +154,20 @@ export default function Setting() {
     setBlockOpposite(next);
     setSavingBlockOG(true);
     try {
+      const gender = getUserGender();
+      if (next) {
+        await api.post(
+          '/user/block-opposite-gender',
+          { userId: Number(userId), gender },
+          { withCredentials: true }
+        );
+      } else {
+        await api.post(
+          '/user/unblock-opposite-gender',
+          { userId: Number(userId), gender },
+          { withCredentials: true }
+        );
+      }
       await api.put('/settings/preferences', {
         userId: Number(userId),
         block_opposite_gender: next,
